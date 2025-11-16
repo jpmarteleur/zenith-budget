@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <!-- Removed default Vite favicon reference to eliminate 404 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Zenith Budget</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -50,19 +50,8 @@
       to { background-position: 30px 30px; }
     }
   </style>
-  <script type="importmap">
-{
-  "imports": {
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
-    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.45.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "recharts": "https://aistudiocdn.com/recharts@^3.3.0"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
+    <!-- Removed importmap: letting Vite handle module resolution locally -->
+    <!-- Removed unused /index.css link to avoid 404 noise -->
 </head>
   <body class="text-gray-200 font-sans">
     <div id="root"></div>

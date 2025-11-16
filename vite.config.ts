@@ -7,7 +7,10 @@ export default defineConfig(({ mode }) => {
     return {
       server: {
         port: 3000,
-        host: '0.0.0.0',
+        // host:true binds to all (IPv4/IPv6) including localhost, 127.0.0.1, ::1.
+        // This can resolve issues where visiting http://localhost:3000 behaved differently
+        // due to extension interception or IPv6-only resolution.
+        host: true,
       },
       plugins: [react()],
       define: {

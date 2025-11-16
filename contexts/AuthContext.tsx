@@ -26,6 +26,7 @@ interface AuthContextType {
   signup: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   loginAsGuest: () => void;
+  loginWithGoogle: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -92,6 +93,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsGuest(true);
     };
 
+    const loginWithGoogle = async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin,
+            },
+        });
+        if (error) throw error;
+    };
+
     const logout = async () => {
       if (isGuest) {
           localStorage.removeItem('zenith-is-guest');
@@ -112,12 +123,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         loginAsGuest,
+        loginWithGoogle,
     };
   }, [currentUser, session, loading, isGuest]);
 
   return (
     <AuthContext.Provider value={authValue}>
-      {!loading && children}
+      {loading ? (
+        <div style={{padding:'2rem', color:'#22d3ee', fontFamily:'sans-serif', textAlign:'center'}}>
+          <div style={{marginBottom:'0.75rem'}}>Initializing session...</div>
+          <div style={{fontSize:'0.75rem', opacity:0.7}}>If this persists, check Supabase redirect URLs and network tab.</div>
+        </div>
+      ) : children}
     </AuthContext.Provider>
   );
 };
