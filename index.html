@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zenith Budget</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Exo 2', 'sans-serif'],
+            display: ['Orbitron', 'sans-serif'],
+          },
+          boxShadow: {
+            'glow-cyan': '0 0 5px rgba(34, 211, 238, 0.6), 0 0 10px rgba(34, 211, 238, 0.4)',
+          },
+        },
+      },
+    }
+    </script>
+  <style>
+    :root {
+      --color-bg-dark: #050a14;
+    }
+    body {
+      background-color: var(--color-bg-dark);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .futuristic-bg {
+      position: fixed;
+      inset: 0;
+      background-color: var(--color-bg-dark);
+      background-image: 
+        linear-gradient(rgba(34, 211, 238, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(34, 211, 238, 0.07) 1px, transparent 1px);
+      background-size: 30px 30px;
+      animation: bg-pan 20s linear infinite;
+      z-index: 0;
+    }
+
+    @keyframes bg-pan {
+      from { background-position: 0 0; }
+      to { background-position: 30px 30px; }
+    }
+  </style>
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.45.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.3.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="text-gray-200 font-sans">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
