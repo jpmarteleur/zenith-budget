@@ -31,26 +31,7 @@ Users can create monthly budgets, track transactions across customizable categor
 
 ## 🚀 Try It Out
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/jpmarteleur/zenith-budget.git
-   cd zenith-budget
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Set up environment variables:
-   - Create a Supabase project
-   - Add your Supabase credentials
-   - Configure Google Gemini API key
-
-4. Run the development server:
-   ```bash
-   npm run dev
-   ```
+Follow the link https://zenith-budget.vercel.app/
 
 If you encounter any bugs or have feature suggestions, please open an issue or submit a pull request. Contributions and feedback are always welcome!
 
@@ -60,10 +41,7 @@ If you encounter any bugs or have feature suggestions, please open an issue or s
 
 - Add recurring transaction support
 - Implement budget forecasting and predictions
-- Create mobile-responsive Progressive Web App (PWA)
-- Add data export/import functionality
 - Build year-over-year comparison views
-- Integrate with bank APIs for automatic transaction importing
 
 ---
 
@@ -71,10 +49,8 @@ If you encounter any bugs or have feature suggestions, please open an issue or s
 
 Throughout this project I built comprehensive full-stack development skills:
 
-- **Modern React patterns**: Hooks (useState, useEffect, custom hooks), Context API for state management, component composition, and type-safe props with TypeScript.
 - **Backend integration**: Working with Supabase for authentication, database operations, real-time subscriptions, and secure API endpoints.
 - **API design**: Creating serverless functions, handling requests/responses, error handling, and integrating third-party APIs (Google Gemini).
-- **State management**: Building custom hooks for complex state logic, managing global auth state, and coordinating data across components.
 - **Data visualization**: Implementing interactive charts with Recharts, transforming raw data into meaningful visual insights.
 - **TypeScript proficiency**: Defining complex types and interfaces, type guards, generic types, and leveraging the type system for safer code.
 - **Build tooling**: Configuring Vite for optimal development experience, understanding module bundling, and environment-specific configurations.
@@ -83,7 +59,6 @@ Throughout this project I built comprehensive full-stack development skills:
 - **Database design**: Structuring relational data, writing efficient queries, and managing user-specific data isolation.
 - **AI integration**: Prompt engineering for transaction parsing, handling API responses, and fallback strategies for AI failures.
 - **Performance optimization**: Lazy loading, memoization, efficient re-renders, and debugging with React DevTools.
-- **Git workflow**: Version control best practices, branching strategies, and collaborative development patterns.
 - **Problem-solving**: Breaking down complex features, debugging across the stack, and iterating based on real-world usage.
 
 ---
@@ -100,4 +75,3 @@ Throughout this project I built comprehensive full-stack development skills:
 
 ---
 
-*Built with passion for better personal finance management.*
