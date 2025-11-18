@@ -1,5 +1,5 @@
 
-export const CATEGORY_NAMES = ['Income', 'Expenses', 'Bills', 'Debts', 'Savings'] as const;
+export const CATEGORY_NAMES = ['Income', 'Expenses', 'Bills', 'Savings', 'Debts'] as const;
 export type CategoryName = typeof CATEGORY_NAMES[number];
 
 export interface Transaction {

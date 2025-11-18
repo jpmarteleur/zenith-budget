@@ -21,7 +21,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const BudgetChart: React.FC<BudgetChartProps> = ({ expectedAmounts, actualAmounts }) => {
-    const spendingCategories: CategoryName[] = ['Expenses', 'Bills', 'Debts', 'Savings'];
+    const spendingCategories: CategoryName[] = ['Expenses', 'Bills', 'Savings', 'Debts'];
     
     const data = spendingCategories.map(cat => ({
         name: cat,

@@ -19,7 +19,7 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ actualAmounts }) => {
-    const spendingCategories: CategoryName[] = ['Expenses', 'Bills', 'Debts', 'Savings'];
+    const spendingCategories: CategoryName[] = ['Expenses', 'Bills', 'Savings', 'Debts'];
 
     const data = spendingCategories
         .map(cat => ({
