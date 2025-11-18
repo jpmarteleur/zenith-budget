@@ -15,7 +15,14 @@ export const parseTransactionText = async (text: string, subcategories: Subcateg
         });
 
         if (!response.ok) {
-            throw new Error('Failed to parse transaction');
+            let serverMsg = 'Failed to parse transaction';
+            try {
+                const errBody = await response.json();
+                if (errBody && typeof errBody.error === 'string') {
+                    serverMsg = errBody.error;
+                }
+            } catch {}
+            throw new Error(serverMsg);
         }
 
         const parsedData = await response.json();

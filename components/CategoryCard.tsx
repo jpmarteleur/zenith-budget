@@ -128,8 +128,6 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ categoryName, expected, act
       </div>
       
       <div className="mt-4 flex-grow overflow-hidden">
-        <h4 className="text-sm font-semibold text-gray-300 mb-2">Subcategories</h4>
-        
         <div className="mt-2 overflow-x-auto">
           <table className="w-full text-sm">
             <colgroup>
