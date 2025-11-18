@@ -45,9 +45,11 @@ const SubcategoryRow: React.FC<{
         if (e.key === 'Escape') setIsEditing(false);
     };
 
-    const remaining = sub.expected - actual;
-    const remainingColor = remaining >= 0 ? 'text-emerald-400' : 'text-red-500';
     const isIncome = categoryName === 'Income';
+    // For income: remaining = actual - expected (positive means more income than expected)
+    // For expenses: remaining = expected - actual (positive means budget left)
+    const remaining = isIncome ? actual - sub.expected : sub.expected - actual;
+    const remainingColor = remaining >= 0 ? 'text-emerald-400' : 'text-red-500';
 
     return (
         <tr className="hover:bg-cyan-400/10">
@@ -76,9 +78,9 @@ const SubcategoryRow: React.FC<{
             </td>
 
             {/* Remaining */}
-            <td className={`px-1 py-1 align-middle text-right border-l border-cyan-400/10 font-mono text-xs tabular-nums ${isIncome ? '' : ''}`}>
-              <span className={`${isIncome ? 'text-gray-500' : remainingColor} whitespace-nowrap`}>
-                {isIncome ? '—' : formatCurrency(remaining)}
+            <td className={`px-1 py-1 align-middle text-right border-l border-cyan-400/10 font-mono text-xs tabular-nums`}>
+              <span className={`${remainingColor} whitespace-nowrap`}>
+                {formatCurrency(remaining)}
               </span>
             </td>
 
