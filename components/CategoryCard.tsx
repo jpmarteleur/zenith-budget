@@ -52,10 +52,10 @@ const SubcategoryRow: React.FC<{
     return (
         <tr className="hover:bg-cyan-400/10">
             {/* Name */}
-            <td className="px-2 py-2 align-middle text-gray-300">{sub.name}</td>
+            <td className="px-1 py-1 align-middle text-gray-300 text-xs">{sub.name}</td>
 
             {/* Expected */}
-            <td className="px-2 py-2 align-middle text-right border-l border-cyan-400/10 whitespace-nowrap">
+            <td className="px-1 py-1 align-middle text-right border-l border-cyan-400/10 whitespace-nowrap">
               {isEditing ? (
                 <input
                   ref={inputRef}
@@ -64,28 +64,28 @@ const SubcategoryRow: React.FC<{
                   onChange={e => setValue(e.target.value)}
                   onBlur={handleSave}
                   onKeyDown={handleKeyDown}
-                  className="w-28 bg-gray-900/50 text-right rounded-md py-0.5 px-1 text-white"
+                  className="w-20 bg-gray-900/50 text-right rounded-md py-0.5 px-1 text-white text-xs"
                   step="0.01"
                   autoFocus
                 />
               ) : (
-                <button onClick={() => setIsEditing(true)} className="cursor-pointer font-mono px-1 whitespace-nowrap tabular-nums text-gray-200">
+                <button onClick={() => setIsEditing(true)} className="cursor-pointer font-mono px-1 whitespace-nowrap tabular-nums text-gray-200 text-xs">
                   {formatCurrency(sub.expected)}
                 </button>
               )}
             </td>
 
             {/* Remaining */}
-            <td className={`px-2 py-2 align-middle text-right border-l border-cyan-400/10 font-mono text-xs tabular-nums ${isIncome ? '' : ''}`}>
+            <td className={`px-1 py-1 align-middle text-right border-l border-cyan-400/10 font-mono text-xs tabular-nums ${isIncome ? '' : ''}`}>
               <span className={`${isIncome ? 'text-gray-500' : remainingColor} whitespace-nowrap`}>
                 {isIncome ? '—' : formatCurrency(remaining)}
               </span>
             </td>
 
             {/* Delete */}
-            <td className="px-2 py-2 align-middle text-right w-6">
+            <td className="px-1 py-1 align-middle text-right w-6">
               <button onClick={() => onDeleteSubcategory(categoryName, sub.id)} className="text-gray-500 hover:text-fuchsia-400">
-                <TrashIcon className="w-4 h-4" />
+                <TrashIcon className="w-3 h-3" />
               </button>
             </td>
         </tr>
@@ -128,20 +128,20 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ categoryName, expected, act
       </div>
       
       <div className="mt-4 flex-grow overflow-hidden">
-        <div className="mt-2 overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="mt-2">
+          <table className="w-full text-xs">
             <colgroup>
               <col />
-              <col style={{ width: '8.5rem' }} />
-              <col style={{ width: '8.5rem' }} />
-              <col style={{ width: '1.5rem' }} />
+              <col style={{ width: '5.5rem' }} />
+              <col style={{ width: '5.5rem' }} />
+              <col style={{ width: '1.25rem' }} />
             </colgroup>
             <thead>
               <tr className="text-xs text-gray-500 uppercase border-b border-cyan-400/10">
-                <th className="px-2 py-1 text-left">Subcategory</th>
-                <th className="px-2 py-1 text-right border-l border-cyan-400/10">Expected</th>
-                <th className="px-2 py-1 text-right border-l border-cyan-400/10">Remaining</th>
-                <th className="px-2 py-1"></th>
+                <th className="px-1 py-1 text-left">Subcategory</th>
+                <th className="px-1 py-1 text-right border-l border-cyan-400/10">Expected</th>
+                <th className="px-1 py-1 text-right border-l border-cyan-400/10">Remaining</th>
+                <th className="px-1 py-1"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-cyan-400/10">
