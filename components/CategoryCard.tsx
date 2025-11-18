@@ -50,44 +50,45 @@ const SubcategoryRow: React.FC<{
     const isIncome = categoryName === 'Income';
 
     return (
-        <li className="grid grid-cols-[1fr_auto_auto_24px] items-center gap-4 text-sm text-gray-400 hover:bg-cyan-400/10 p-1 rounded group">
-            {/* Column 1: Name */}
-            <span className="break-words pr-1">{sub.name}</span>
+        <tr className="hover:bg-cyan-400/10">
+            {/* Name */}
+            <td className="px-2 py-2 align-middle text-gray-300">{sub.name}</td>
 
-            {/* Column 2: Expected */}
-            <div className="text-right">
+            {/* Expected */}
+            <td className="px-2 py-2 align-middle text-right border-l border-cyan-400/10 whitespace-nowrap">
               {isEditing ? (
-                  <input
-                      ref={inputRef}
-                      type="number"
-                      value={value}
-                      onChange={e => setValue(e.target.value)}
-                      onBlur={handleSave}
-                      onKeyDown={handleKeyDown}
-                      className="w-full bg-gray-900/50 text-right rounded-md py-0.5 px-1 text-white min-w-[80px]"
-                      autoFocus
-                  />
+                <input
+                  ref={inputRef}
+                  type="number"
+                  value={value}
+                  onChange={e => setValue(e.target.value)}
+                  onBlur={handleSave}
+                  onKeyDown={handleKeyDown}
+                  className="w-28 bg-gray-900/50 text-right rounded-md py-0.5 px-1 text-white"
+                  step="0.01"
+                  autoFocus
+                />
               ) : (
-                  <span onClick={() => setIsEditing(true)} className="cursor-pointer font-mono px-1 block whitespace-nowrap">
-                      {formatCurrency(sub.expected)}
-                  </span>
+                <button onClick={() => setIsEditing(true)} className="cursor-pointer font-mono px-1 whitespace-nowrap tabular-nums text-gray-200">
+                  {formatCurrency(sub.expected)}
+                </button>
               )}
-            </div>
+            </td>
 
-            {/* Column 3: Remaining */}
-            <div className={`text-right font-mono text-xs ${isIncome ? 'invisible' : ''}`}>
-                <span className={`${remainingColor} whitespace-nowrap`}>
-                    {formatCurrency(remaining)}
-                </span>
-            </div>
+            {/* Remaining */}
+            <td className={`px-2 py-2 align-middle text-right border-l border-cyan-400/10 font-mono text-xs tabular-nums ${isIncome ? '' : ''}`}>
+              <span className={`${isIncome ? 'text-gray-500' : remainingColor} whitespace-nowrap`}>
+                {isIncome ? '—' : formatCurrency(remaining)}
+              </span>
+            </td>
 
-            {/* Column 4: Delete Button */}
-            <div className="flex justify-center">
-              <button onClick={() => onDeleteSubcategory(categoryName, sub.id)} className="text-gray-500 hover:text-fuchsia-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <TrashIcon className="w-4 h-4" />
+            {/* Delete */}
+            <td className="px-2 py-2 align-middle text-right w-6">
+              <button onClick={() => onDeleteSubcategory(categoryName, sub.id)} className="text-gray-500 hover:text-fuchsia-400">
+                <TrashIcon className="w-4 h-4" />
               </button>
-            </div>
-        </li>
+            </td>
+        </tr>
     );
 };
 
@@ -129,27 +130,36 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ categoryName, expected, act
       <div className="mt-4 flex-grow overflow-hidden">
         <h4 className="text-sm font-semibold text-gray-300 mb-2">Subcategories</h4>
         
-        {subcategories.length > 0 && (
-          <div className="grid grid-cols-[1fr_auto_auto_24px] gap-4 text-xs text-gray-500 uppercase px-1 pb-1 border-b border-cyan-400/10">
-              <span className="font-semibold">Subcategory</span>
-              <span className="font-semibold text-right">Expected</span>
-              <span className={`font-semibold text-right ${isIncome ? 'invisible' : ''}`}>Remaining</span>
-              <span className="w-6"></span> {/* For alignment */}
-          </div>
-        )}
-
-        <ul className="space-y-1 pt-1">
-          {subcategories.map(sub => (
-            <SubcategoryRow 
-                key={sub.id} 
-                sub={sub} 
-                categoryName={categoryName}
-                onDeleteSubcategory={onDeleteSubcategory}
-                onUpdateSubcategoryExpected={onUpdateSubcategoryExpected}
-                actual={actualsBySubcategory[sub.name] || 0}
-            />
-          ))}
-        </ul>
+        <div className="mt-2 overflow-x-auto">
+          <table className="w-full text-sm">
+            <colgroup>
+              <col />
+              <col style={{ width: '8.5rem' }} />
+              <col style={{ width: '8.5rem' }} />
+              <col style={{ width: '1.5rem' }} />
+            </colgroup>
+            <thead>
+              <tr className="text-xs text-gray-500 uppercase border-b border-cyan-400/10">
+                <th className="px-2 py-1 text-left">Subcategory</th>
+                <th className="px-2 py-1 text-right border-l border-cyan-400/10">Expected</th>
+                <th className="px-2 py-1 text-right border-l border-cyan-400/10">Remaining</th>
+                <th className="px-2 py-1"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-cyan-400/10">
+              {subcategories.map(sub => (
+                <SubcategoryRow
+                  key={sub.id}
+                  sub={sub}
+                  categoryName={categoryName}
+                  onDeleteSubcategory={onDeleteSubcategory}
+                  onUpdateSubcategoryExpected={onUpdateSubcategoryExpected}
+                  actual={actualsBySubcategory[sub.name] || 0}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
       
       <form onSubmit={handleSubcategoryAdd} className="mt-4 flex flex-wrap items-center gap-2">
