@@ -53,12 +53,10 @@ Throughout this project I built comprehensive full-stack development skills:
 - **API design**: Creating serverless functions, handling requests/responses, error handling, and integrating third-party APIs (Google Gemini).
 - **Data visualization**: Implementing interactive charts with Recharts, transforming raw data into meaningful visual insights.
 - **TypeScript proficiency**: Defining complex types and interfaces, type guards, generic types, and leveraging the type system for safer code.
-- **Build tooling**: Configuring Vite for optimal development experience, understanding module bundling, and environment-specific configurations.
 - **UI/UX design**: Creating an intuitive interface, responsive layouts, modal patterns, form validation, and consistent visual feedback.
 - **Authentication flows**: Implementing secure user authentication, session management, and protected routes.
 - **Database design**: Structuring relational data, writing efficient queries, and managing user-specific data isolation.
 - **AI integration**: Prompt engineering for transaction parsing, handling API responses, and fallback strategies for AI failures.
-- **Performance optimization**: Lazy loading, memoization, efficient re-renders, and debugging with React DevTools.
 - **Problem-solving**: Breaking down complex features, debugging across the stack, and iterating based on real-world usage.
 
 ---
