@@ -15,7 +15,7 @@ const HowToPage: React.FC = () => {
           Zenith Budget is built on the <strong className="text-white">zero-based budgeting</strong> method. The concept is simple: <strong className="text-white">give every dollar a job</strong>.
         </p>
         <p className="mb-4">
-          At the beginning of each month, you plan where all of your income will go—from bills and expenses to debt payments and savings goals. Your income minus all your planned spending should equal zero.
+          At the beginning of each month, you plan where all of your income will go; from bills and expenses to debt payments and savings goals. Your income minus all your planned spending should equal zero.
         </p>
         <div className="bg-gray-900/50 border border-cyan-400/20 rounded-lg p-4">
             <h4 className="font-semibold text-white">The Main Goal: Remaining to Budget = $0</h4>
