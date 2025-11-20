@@ -22,6 +22,7 @@ const BudgetPage: React.FC<BudgetPageProps> = (props) => {
     addSubcategory,
     deleteSubcategory,
     updateSubcategoryExpected,
+    toggleSubcategoryExcludeFromBudget,
     transactions,
     addTransaction,
     updateTransaction,
@@ -68,6 +69,7 @@ const BudgetPage: React.FC<BudgetPageProps> = (props) => {
               onAddSubcategory={addSubcategory}
               onDeleteSubcategory={deleteSubcategory}
               onUpdateSubcategoryExpected={updateSubcategoryExpected}
+              onToggleExcludeFromBudget={toggleSubcategoryExcludeFromBudget}
             />
           ))}
         </div>

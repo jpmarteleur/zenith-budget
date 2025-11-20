@@ -15,6 +15,7 @@ export interface Subcategory {
   id: string;
   name: string;
   expected: number;
+  excludeFromBudget?: boolean;
 }
 
 export interface Category {

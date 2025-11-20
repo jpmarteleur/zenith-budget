@@ -311,14 +311,31 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
         await updateMonthData({ subcategories: newSubcategories });
     }, [currentMonthData.subcategories, updateMonthData]);
 
-    const actualAmounts = useMemo(() => {
-        return currentMonthData.transactions.reduce((acc, transaction) => {
-            acc[transaction.category] = (acc[transaction.category] || 0) + transaction.amount;
-            return acc;
-        }, {} as Record<CategoryName, number>);
-    }, [currentMonthData.transactions]);
-    
-    const actualsBySubcategory = useMemo(() => {
+    const toggleSubcategoryExcludeFromBudget = useCallback(async (category: CategoryName, id: string) => {
+        const newSubcategories = { 
+            ...currentMonthData.subcategories, 
+            [category]: currentMonthData.subcategories[category].map(sub => 
+                sub.id === id ? {...sub, excludeFromBudget: !sub.excludeFromBudget} : sub
+            )
+        };
+        await updateMonthData({ subcategories: newSubcategories });
+    }, [currentMonthData.subcategories, updateMonthData]);
+
+  const actualAmounts = useMemo(() => {
+    return currentMonthData.transactions.reduce((acc, transaction) => {
+      // Check if the transaction's subcategory is excluded from budget
+      const categorySubcategories = currentMonthData.subcategories[transaction.category] || [];
+      const subcategory = categorySubcategories.find(sub => sub.name === transaction.subcategory);
+      
+      // Skip if excluded from budget
+      if (subcategory?.excludeFromBudget) {
+        return acc;
+      }
+      
+      acc[transaction.category] = (acc[transaction.category] || 0) + transaction.amount;
+      return acc;
+    }, {} as Record<CategoryName, number>);
+  }, [currentMonthData.transactions, currentMonthData.subcategories]);    const actualsBySubcategory = useMemo(() => {
         const bySub: Record<CategoryName, Record<string, number>> = { Income: {}, Expenses: {}, Bills: {}, Debts: {}, Savings: {} };
         for (const transaction of currentMonthData.transactions) {
             const { category, subcategory, amount } = transaction;
@@ -329,15 +346,17 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
         return bySub;
     }, [currentMonthData.transactions]);
 
-    const expectedAmounts = useMemo(() => {
-        const newExpected: Record<CategoryName, number> = { Income: 0, Expenses: 0, Bills: 0, Debts: 0, Savings: 0 };
-        for (const category of CATEGORY_NAMES) {
-            newExpected[category] = currentMonthData.subcategories[category]?.reduce((sum, sub) => sum + sub.expected, 0) || 0;
-        }
-        return newExpected;
-    }, [currentMonthData.subcategories]);
-    
-    const createNewMonth = useCallback(async (month: string, option: 'copy' | 'blank' | 'scratch') => {
+  const expectedAmounts = useMemo(() => {
+    const newExpected: Record<CategoryName, number> = { Income: 0, Expenses: 0, Bills: 0, Debts: 0, Savings: 0 };
+    for (const category of CATEGORY_NAMES) {
+      newExpected[category] = currentMonthData.subcategories[category]?.reduce((sum, sub) => {
+        // Skip subcategories excluded from budget
+        if (sub.excludeFromBudget) return sum;
+        return sum + sub.expected;
+      }, 0) || 0;
+    }
+    return newExpected;
+  }, [currentMonthData.subcategories]);    const createNewMonth = useCallback(async (month: string, option: 'copy' | 'blank' | 'scratch') => {
         if (!currentUser || allData[month]) return;
 
         let subcategoriesToUse: Subcategories;
@@ -416,6 +435,7 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
         deleteSubcategory,
         updateSubcategory,
         updateSubcategoryExpected,
+        toggleSubcategoryExcludeFromBudget,
         actualAmounts,
         expectedAmounts,
         actualsBySubcategory,

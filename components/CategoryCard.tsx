@@ -13,6 +13,7 @@ interface CategoryCardProps {
   onAddSubcategory: (category: CategoryName, name: string, expected: number) => void;
   onDeleteSubcategory: (category: CategoryName, id: string) => void;
   onUpdateSubcategoryExpected: (category: CategoryName, id: string, amount: number) => void;
+  onToggleExcludeFromBudget?: (category: CategoryName, id: string) => void;
 }
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -22,8 +23,9 @@ const SubcategoryRow: React.FC<{
   categoryName: CategoryName;
   onDeleteSubcategory: (category: CategoryName, id: string) => void;
   onUpdateSubcategoryExpected: (category: CategoryName, id: string, amount: number) => void;
+  onToggleExcludeFromBudget?: (category: CategoryName, id: string) => void;
   actual: number;
-}> = ({ sub, categoryName, onDeleteSubcategory, onUpdateSubcategoryExpected, actual }) => {
+}> = ({ sub, categoryName, onDeleteSubcategory, onUpdateSubcategoryExpected, onToggleExcludeFromBudget, actual }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [value, setValue] = useState(sub.expected.toString());
     const inputRef = useRef<HTMLInputElement>(null);
@@ -52,9 +54,23 @@ const SubcategoryRow: React.FC<{
     const remainingColor = remaining >= 0 ? 'text-emerald-400' : 'text-red-500';
 
     return (
-        <tr className="hover:bg-cyan-400/10">
+        <tr className={`hover:bg-cyan-400/10 ${sub.excludeFromBudget ? 'opacity-50' : ''}`}>
+            {/* Checkbox */}
+            <td className="px-1 py-1 align-middle w-4">
+              <input
+                type="checkbox"
+                checked={sub.excludeFromBudget || false}
+                onChange={() => onToggleExcludeFromBudget?.(categoryName, sub.id)}
+                title="Exclude from budget calculations"
+                className="w-3 h-3 rounded border-cyan-400/30 bg-gray-900/50 text-cyan-600 focus:ring-1 focus:ring-cyan-500 cursor-pointer"
+              />
+            </td>
+
             {/* Name */}
-            <td className="px-1 py-1 align-middle text-gray-300 text-xs">{sub.name}</td>
+            <td className="px-1 py-1 align-middle text-gray-300 text-xs">
+              {sub.name}
+              {sub.excludeFromBudget && <span className="ml-1 text-[10px] text-gray-500">(excluded)</span>}
+            </td>
 
             {/* Expected */}
             <td className="px-1 py-1 align-middle text-right border-l border-cyan-400/10 whitespace-nowrap">
@@ -94,7 +110,17 @@ const SubcategoryRow: React.FC<{
     );
 };
 
-const CategoryCard: React.FC<CategoryCardProps> = ({ categoryName, expected, actual, subcategories, actualsBySubcategory, onAddSubcategory, onDeleteSubcategory, onUpdateSubcategoryExpected }) => {
+const CategoryCard: React.FC<CategoryCardProps> = ({
+  categoryName,
+  expected,
+  actual,
+  subcategories,
+  actualsBySubcategory,
+  onAddSubcategory,
+  onDeleteSubcategory,
+  onUpdateSubcategoryExpected,
+  onToggleExcludeFromBudget,
+}) => {
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
   const [newSubcategoryExpected, setNewSubcategoryExpected] = useState('');
   const { text } = CATEGORY_COLORS[categoryName];
@@ -133,6 +159,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ categoryName, expected, act
         <div className="mt-2">
           <table className="w-full text-xs">
             <colgroup>
+              <col style={{ width: '1rem' }} />
               <col />
               <col style={{ width: '5.5rem' }} />
               <col style={{ width: '5.5rem' }} />
@@ -140,6 +167,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ categoryName, expected, act
             </colgroup>
             <thead>
               <tr className="text-xs text-gray-500 uppercase border-b border-cyan-400/10">
+                <th className="px-1 py-1" title="Exclude from budget"></th>
                 <th className="px-1 py-1 text-left">Subcategory</th>
                 <th className="px-1 py-1 text-right border-l border-cyan-400/10">Expected</th>
                 <th className="px-1 py-1 text-right border-l border-cyan-400/10">Remaining</th>
@@ -154,6 +182,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ categoryName, expected, act
                   categoryName={categoryName}
                   onDeleteSubcategory={onDeleteSubcategory}
                   onUpdateSubcategoryExpected={onUpdateSubcategoryExpected}
+                  onToggleExcludeFromBudget={onToggleExcludeFromBudget}
                   actual={actualsBySubcategory[sub.name] || 0}
                 />
               ))}
