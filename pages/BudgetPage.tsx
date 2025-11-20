@@ -35,14 +35,16 @@ const BudgetPage: React.FC<BudgetPageProps> = (props) => {
   return (
     <div className="space-y-6">
       {/* Floating Action Button */}
-      <button
-        type="button"
-        onClick={() => setIsFormVisible(true)}
-        aria-label="Log Transaction"
-        className="fixed bottom-20 right-4 md:bottom-8 md:right-8 bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg shadow-cyan-900/50 ring-2 ring-cyan-300/30 backdrop-blur-sm z-50"
-      >
-        <PlusIcon className="w-6 h-6" />
-      </button>
+      {!isFormVisible && (
+        <button
+          type="button"
+          onClick={() => setIsFormVisible(true)}
+          aria-label="Log Transaction"
+          className="fixed bottom-6 right-4 md:bottom-8 md:right-8 bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg shadow-cyan-900/50 ring-2 ring-cyan-300/30 backdrop-blur-sm z-50"
+        >
+          <PlusIcon className="w-6 h-6" />
+        </button>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <BudgetIndicator title="Remaining to Budget" amount={remainingToBudget} />
         <BudgetIndicator title="Remaining to Spend" amount={remainingToSpend} />
