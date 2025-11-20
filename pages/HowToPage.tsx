@@ -42,6 +42,16 @@ const HowToPage: React.FC = () => {
             <strong className="text-white">Track and Adjust:</strong>
             <p className="text-sm text-gray-400 ml-6 mt-1">Use the 'Budget' page to see how your actual spending compares to your expected plan. The progress bars will show you how much of your budget you've used. If you overspend in one area, you'll need to adjust your budget and move money from another category to stay on track. The 'Dashboard' page gives you a high-level visual overview of your financial health.</p>
           </li>
+          <li>
+            <strong className="text-white">Hide Subcategories from Budget (Optional):</strong>
+            <p className="text-sm text-gray-400 ml-6 mt-1">Click the eye icon next to any subcategory to hide it from budget calculations. This is useful for tracking transactions that don't come from your regular income, such as:</p>
+            <ul className="text-sm text-gray-400 ml-12 mt-3 list-disc space-y-2">
+              <li><strong className="text-gray-200">Savings-funded expenses:</strong> Large purchases paid from savings (car repairs, home improvements)</li>
+              <li><strong className="text-gray-200">Reimbursable expenses:</strong> Work expenses you'll be reimbursed for</li>
+              <li><strong className="text-gray-200">Gift money or windfalls:</strong> Income that's separate from your regular budget planning</li>
+            </ul>
+            <p className="text-sm text-gray-400 ml-6 mt-2">Hidden subcategories (shown with the eye-off icon) won't affect your "Remaining to Spend" but will still be tracked in your transaction history for record-keeping.</p>
+          </li>
         </ol>
       </div>
 
