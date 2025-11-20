@@ -3,6 +3,8 @@ import type { CategoryName, Subcategory } from '../types';
 import { CATEGORY_COLORS, FUTURISTIC_GLASS_STYLE } from '../constants';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
+import EyeIcon from './icons/EyeIcon';
+import EyeOffIcon from './icons/EyeOffIcon';
 
 interface CategoryCardProps {
   categoryName: CategoryName;
@@ -55,21 +57,21 @@ const SubcategoryRow: React.FC<{
 
     return (
         <tr className={`hover:bg-cyan-400/10 ${sub.excludeFromBudget ? 'opacity-50' : ''}`}>
-            {/* Checkbox */}
+            {/* Budget visibility toggle */}
             <td className="px-1 py-1 align-middle w-4">
-              <input
-                type="checkbox"
-                checked={sub.excludeFromBudget || false}
-                onChange={() => onToggleExcludeFromBudget?.(categoryName, sub.id)}
-                title="Exclude from budget calculations"
-                className="w-3 h-3 rounded border-cyan-400/30 bg-gray-900/50 text-cyan-600 focus:ring-1 focus:ring-cyan-500 cursor-pointer"
-              />
+              <button
+                onClick={() => onToggleExcludeFromBudget?.(categoryName, sub.id)}
+                title={sub.excludeFromBudget ? "Hidden from budget (click to include)" : "Visible in budget (click to hide)"}
+                className={`transition-colors ${sub.excludeFromBudget ? 'text-gray-600 hover:text-gray-500' : 'text-cyan-500 hover:text-cyan-400'}`}
+              >
+                {sub.excludeFromBudget ? <EyeOffIcon className="w-3 h-3" /> : <EyeIcon className="w-3 h-3" />}
+              </button>
             </td>
 
             {/* Name */}
             <td className="px-1 py-1 align-middle text-gray-300 text-xs">
               {sub.name}
-              {sub.excludeFromBudget && <span className="ml-1 text-[10px] text-gray-500">(excluded)</span>}
+              {sub.excludeFromBudget && <span className="ml-1 text-[10px] text-gray-500">(hidden)</span>}
             </td>
 
             {/* Expected */}
