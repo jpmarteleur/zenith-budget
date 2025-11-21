@@ -2,19 +2,19 @@ import React from 'react';
 import type { CategoryName } from '../types';
 import { CATEGORY_NAMES } from '../types';
 import { CATEGORY_COLORS, FUTURISTIC_GLASS_STYLE } from '../constants';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface BudgetSummaryProps {
   expectedAmounts: Record<CategoryName, number>;
   actualAmounts: Record<CategoryName, number>;
 }
 
-const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-
 const SummaryRow: React.FC<{
   categoryName: CategoryName;
   expected: number;
   actual: number;
 }> = ({ categoryName, expected, actual }) => {
+  const { formatCurrency } = useSettings();
   const { text, base } = CATEGORY_COLORS[categoryName];
   // Guard against division by zero
   const progress = expected > 0 ? (actual / expected) * 100 : 0;

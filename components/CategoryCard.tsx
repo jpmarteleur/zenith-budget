@@ -5,6 +5,7 @@ import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 import EyeIcon from './icons/EyeIcon';
 import EyeOffIcon from './icons/EyeOffIcon';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface CategoryCardProps {
   categoryName: CategoryName;
@@ -18,8 +19,6 @@ interface CategoryCardProps {
   onToggleExcludeFromBudget?: (category: CategoryName, id: string) => void;
 }
 
-const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-
 const SubcategoryRow: React.FC<{
   sub: Subcategory;
   categoryName: CategoryName;
@@ -28,6 +27,7 @@ const SubcategoryRow: React.FC<{
   onToggleExcludeFromBudget?: (category: CategoryName, id: string) => void;
   actual: number;
 }> = ({ sub, categoryName, onDeleteSubcategory, onUpdateSubcategoryExpected, onToggleExcludeFromBudget, actual }) => {
+    const { formatCurrency } = useSettings();
     const [isEditing, setIsEditing] = useState(false);
     const [value, setValue] = useState(sub.expected.toString());
     const inputRef = useRef<HTMLInputElement>(null);
@@ -123,6 +123,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
   onUpdateSubcategoryExpected,
   onToggleExcludeFromBudget,
 }) => {
+  const { formatCurrency } = useSettings();
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
   const [newSubcategoryExpected, setNewSubcategoryExpected] = useState('');
   const { text } = CATEGORY_COLORS[categoryName];

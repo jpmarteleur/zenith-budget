@@ -1,19 +1,14 @@
 import React from 'react';
 import { FUTURISTIC_GLASS_STYLE } from '../constants';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface BudgetIndicatorProps {
   title: string;
   amount: number;
 }
 
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    }).format(amount);
-};
-
 const BudgetIndicator: React.FC<BudgetIndicatorProps> = ({ title, amount }) => {
+    const { formatCurrency } = useSettings();
     const amountColor = amount > 0 ? 'text-emerald-400' : amount < 0 ? 'text-red-500' : 'text-gray-300';
 
     return (

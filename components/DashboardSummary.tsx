@@ -1,6 +1,7 @@
 import React from 'react';
 import type { CategoryName } from '../types';
 import { CATEGORY_COLORS, FUTURISTIC_GLASS_STYLE } from '../constants';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface DashboardSummaryProps {
   categoryName: CategoryName;
@@ -8,9 +9,8 @@ interface DashboardSummaryProps {
   actual: number;
 }
 
-const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-
 const DashboardSummary: React.FC<DashboardSummaryProps> = ({ categoryName, expected, actual }) => {
+  const { formatCurrency } = useSettings();
   const { text, bg, base } = CATEGORY_COLORS[categoryName];
   const remaining = expected - actual;
   const progress = expected > 0 ? (actual / expected) * 100 : 0;

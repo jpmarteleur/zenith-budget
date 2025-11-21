@@ -6,6 +6,7 @@ import PencilIcon from './icons/PencilIcon';
 import CheckIcon from './icons/CheckIcon';
 import XIcon from './icons/XIcon';
 import PlusIcon from './icons/PlusIcon';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -21,6 +22,7 @@ const TransactionRow: React.FC<{
     onDelete: (id: string) => void;
     subcategories: Subcategories;
 }> = ({ transaction, onUpdate, onDelete, subcategories }) => {
+    const { formatCurrency } = useSettings();
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState(transaction);
 
@@ -74,7 +76,7 @@ const TransactionRow: React.FC<{
             </td>
             <td className="p-3">{transaction.subcategory}</td>
             <td className={`p-3 font-mono text-right ${transaction.category === 'Income' ? 'text-cyan-400' : 'text-gray-300'}`}>
-                {transaction.amount.toFixed(2)}
+                {formatCurrency(transaction.amount)}
             </td>
             <td className="p-3 text-gray-400">{transaction.note}</td>
             <td className="p-3 text-right">
@@ -89,6 +91,7 @@ const TransactionRow: React.FC<{
 
 
 const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, updateTransaction, deleteTransaction, subcategories, onLogTransactionClick }) => {
+  const { currency } = useSettings();
   return (
     <div className="mt-8 overflow-x-auto">
         <div className="flex justify-between items-center mb-4">
@@ -107,7 +110,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, updat
                     <th className="p-3">Date</th>
                     <th className="p-3">Category</th>
                     <th className="p-3">Subcategory</th>
-                    <th className="p-3 text-right">Amount ($)</th>
+                    <th className="p-3 text-right">Amount ({currency.symbol})</th>
                     <th className="p-3">Note</th>
                     <th className="p-3 text-right">Actions</th>
                 </tr>

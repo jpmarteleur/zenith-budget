@@ -3,10 +3,11 @@ import NavBar from './components/NavBar';
 import BudgetPage from './pages/BudgetPage';
 import DashboardPage from './pages/DashboardPage';
 import HowToPage from './pages/HowToPage';
+import SettingsPage from './pages/SettingsPage';
 import { useBudget } from './hooks/useBudget';
 import { useAuth } from './hooks/useAuth';
 
-export type Page = 'Budget' | 'Dashboard' | 'How To';
+export type Page = 'Budget' | 'Dashboard' | 'How To' | 'Settings';
 
 const getCurrentMonth = () => {
   const now = new Date();
@@ -33,6 +34,8 @@ const MainApp: React.FC = () => {
         return <DashboardPage {...budgetData} />;
       case 'How To':
         return <HowToPage />;
+      case 'Settings':
+        return <SettingsPage />;
       default:
         return <BudgetPage {...budgetData} selectedMonth={selectedMonth} />;
     }

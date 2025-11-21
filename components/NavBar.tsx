@@ -57,7 +57,7 @@ const NavBar: React.FC<NavBarProps> = ({ activePage, setActivePage, selectedMont
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const { currentUser, logout } = useAuth();
-  const pages: Page[] = ['Budget', 'Dashboard', 'How To'];
+  const pages: Page[] = ['Budget', 'Dashboard', 'How To', 'Settings'];
   
   const mostRecentMonth = availableMonths[0] || selectedMonth;
   const nextMonth = getNextMonth(mostRecentMonth);
@@ -99,7 +99,7 @@ const NavBar: React.FC<NavBarProps> = ({ activePage, setActivePage, selectedMont
           ))}
         </div>
         <div className="flex items-center space-x-2 sm:space-x-4 justify-end">
-            {activePage !== 'How To' && (
+            {activePage !== 'How To' && activePage !== 'Settings' && (
                 <div className="flex items-center space-x-2">
                     <div className="relative">
                         <select 
