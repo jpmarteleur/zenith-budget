@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'JPY' | 'CAD' | 'AUD' | 'CNY' | 'INR' | 'BRL';
+export type CurrencyCode = 'USD' | 'EUR' | 'GBP';
 
 interface Currency {
   code: CurrencyCode;
@@ -13,12 +13,6 @@ export const CURRENCIES: Currency[] = [
   { code: 'USD', symbol: '$', name: 'US Dollar', locale: 'en-US' },
   { code: 'EUR', symbol: '€', name: 'Euro', locale: 'de-DE' },
   { code: 'GBP', symbol: '£', name: 'British Pound', locale: 'en-GB' },
-  { code: 'JPY', symbol: '¥', name: 'Japanese Yen', locale: 'ja-JP' },
-  { code: 'CAD', symbol: 'CA$', name: 'Canadian Dollar', locale: 'en-CA' },
-  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', locale: 'en-AU' },
-  { code: 'CNY', symbol: 'CN¥', name: 'Chinese Yuan', locale: 'zh-CN' },
-  { code: 'INR', symbol: '₹', name: 'Indian Rupee', locale: 'en-IN' },
-  { code: 'BRL', symbol: 'R$', name: 'Brazilian Real', locale: 'pt-BR' },
 ];
 
 interface SettingsContextType {
