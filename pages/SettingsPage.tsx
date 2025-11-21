@@ -6,9 +6,7 @@ const SettingsPage: React.FC = () => {
   const { currency, setCurrency } = useSettings();
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <h1 className="text-3xl font-bold text-white mb-8">Settings</h1>
-      
+    <div className="space-y-6">
       <div className={`${FUTURISTIC_GLASS_STYLE} p-6`}>
         <h2 className="text-xl font-bold text-white mb-4">General Settings</h2>
         
