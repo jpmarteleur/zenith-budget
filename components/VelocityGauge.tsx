@@ -26,7 +26,6 @@ const VelocityGauge: React.FC<VelocityGaugeProps> = ({ expectedAmounts, actualAm
   // Calculate month progress
   const now = new Date();
   const [year, month] = selectedMonth.split('-').map(Number);
-  const selectedDate = new Date(year, month - 1, 1);
   const daysInMonth = new Date(year, month, 0).getDate();
 
   // Only calculate progress if it's the current month
@@ -114,15 +113,34 @@ const VelocityGauge: React.FC<VelocityGaugeProps> = ({ expectedAmounts, actualAm
       <div className={`text-3xl font-bold ${statusColor} mb-1`}>
         {velocityIndex.toFixed(2)}x
       </div>
-      <div className="text-sm text-gray-400 uppercase tracking-wider mb-3">
+      <div className={`text-sm font-semibold ${statusColor} uppercase tracking-wider mb-4`}>
         {statusText}
       </div>
-      <div className="text-xs text-gray-500 text-center max-w-[200px]">
-        Spent ${totalActualSpending.toLocaleString()} of ${totalExpectedSpending.toLocaleString()}
-        ({Math.round(budgetProgress * 100)}% of budget)
-      </div>
-      <div className="text-xs text-gray-500 text-center">
-        {Math.round(monthProgress * 100)}% through {isCurrentMonth ? 'current' : 'selected'} month
+
+      {/* Budget Progress */}
+      <div className="w-full max-w-[240px] space-y-2">
+        <div className="flex justify-between items-center text-xs">
+          <span className="text-gray-400">Budget Used:</span>
+          <span className="text-white font-semibold">{Math.round(budgetProgress * 100)}%</span>
+        </div>
+        <div className="flex justify-between items-center text-xs">
+          <span className="text-gray-400">Spent:</span>
+          <span className="text-white font-semibold">${totalActualSpending.toLocaleString()}</span>
+        </div>
+        <div className="flex justify-between items-center text-xs">
+          <span className="text-gray-400">Budget:</span>
+          <span className="text-white font-semibold">${totalExpectedSpending.toLocaleString()}</span>
+        </div>
+
+        <div className="border-t border-gray-700 my-2"></div>
+
+        <div className="flex justify-between items-center text-xs">
+          <span className="text-gray-400">Month Progress:</span>
+          <span className="text-white font-semibold">{Math.round(monthProgress * 100)}%</span>
+        </div>
+        <div className="text-xs text-gray-500 text-center mt-1">
+          Day {currentDay} of {daysInMonth} {isCurrentMonth ? '(current)' : ''}
+        </div>
       </div>
     </div>
   );
