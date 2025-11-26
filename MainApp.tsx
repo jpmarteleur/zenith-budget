@@ -22,7 +22,7 @@ const MainApp: React.FC = () => {
 
   useEffect(() => {
     if (budgetData.isLoaded && budgetData.availableMonths.length > 0 && !budgetData.availableMonths.includes(selectedMonth)) {
-        setSelectedMonth(budgetData.availableMonths[0]);
+      setSelectedMonth(budgetData.availableMonths[0]);
     }
   }, [budgetData.isLoaded, budgetData.availableMonths, selectedMonth]);
 
@@ -31,7 +31,7 @@ const MainApp: React.FC = () => {
       case 'Budget':
         return <BudgetPage {...budgetData} selectedMonth={selectedMonth} />;
       case 'Dashboard':
-        return <DashboardPage {...budgetData} />;
+        return <DashboardPage {...budgetData} selectedMonth={selectedMonth} />;
       case 'How To':
         return <HowToPage />;
       case 'Settings':
@@ -47,11 +47,11 @@ const MainApp: React.FC = () => {
       <div className="relative z-10 min-h-screen flex flex-col items-center p-4 sm:p-6 lg:p-8">
         <div className="w-full max-w-7xl mx-auto">
           <header className="mb-6 text-center">
-            <h1 className="text-4xl sm:text-5xl font-bold text-white tracking-wider uppercase font-display" style={{textShadow: '0 0 8px rgba(34, 211, 238, 0.7)'}}>Zenith Budget</h1>
+            <h1 className="text-4xl sm:text-5xl font-bold text-white tracking-wider uppercase font-display" style={{ textShadow: '0 0 8px rgba(34, 211, 238, 0.7)' }}>Zenith Budget</h1>
             <p className="text-cyan-400 mt-2 text-sm tracking-widest uppercase">Manage Your Assets</p>
           </header>
-          <NavBar 
-            activePage={activePage} 
+          <NavBar
+            activePage={activePage}
             setActivePage={setActivePage}
             selectedMonth={selectedMonth}
             setSelectedMonth={setSelectedMonth}

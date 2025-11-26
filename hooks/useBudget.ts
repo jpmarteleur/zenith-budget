@@ -23,51 +23,51 @@ const getGuestInitialData = (): AllBudgetData => {
     const now = new Date();
     const currentMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
     const previousMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    
+
     const currentMonthKey = `${currentMonthDate.getFullYear()}-${String(currentMonthDate.getMonth() + 1).padStart(2, '0')}`;
     const previousMonthKey = `${previousMonthDate.getFullYear()}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
 
     const guestSubcategories = {
-        Income: [{id: 'sub-inc-1', name: 'Salary', expected: 5000}],
+        Income: [{ id: 'sub-inc-1', name: 'Salary', expected: 5000 }],
         Expenses: [
-            {id: 'sub-exp-1', name: 'Groceries', expected: 500}, 
-            {id: 'sub-exp-2', name: 'Eating Out', expected: 250},
-            {id: 'sub-exp-3', name: 'Gas', expected: 150},
-            {id: 'sub-exp-4', name: 'Shopping', expected: 200},
+            { id: 'sub-exp-1', name: 'Groceries', expected: 500 },
+            { id: 'sub-exp-2', name: 'Eating Out', expected: 250 },
+            { id: 'sub-exp-3', name: 'Gas', expected: 150 },
+            { id: 'sub-exp-4', name: 'Shopping', expected: 200 },
         ],
         Bills: [
-            {id: 'sub-bill-1', name: 'Rent', expected: 2000}, 
-            {id: 'sub-bill-2', name: 'Internet', expected: 60},
-            {id: 'sub-bill-3', name: 'Phone', expected: 90},
-            {id: 'sub-bill-4', name: 'Utilities', expected: 150},
+            { id: 'sub-bill-1', name: 'Rent', expected: 2000 },
+            { id: 'sub-bill-2', name: 'Internet', expected: 60 },
+            { id: 'sub-bill-3', name: 'Phone', expected: 90 },
+            { id: 'sub-bill-4', name: 'Utilities', expected: 150 },
         ],
-        Debts: [{id: 'sub-debt-1', name: 'Student Loan', expected: 300}],
+        Debts: [{ id: 'sub-debt-1', name: 'Student Loan', expected: 300 }],
         Savings: [
-            {id: 'sub-save-1', name: 'Vacation Fund', expected: 300},
-            {id: 'sub-save-2', name: 'Emergency Fund', expected: 250},
+            { id: 'sub-save-1', name: 'Vacation Fund', expected: 300 },
+            { id: 'sub-save-2', name: 'Emergency Fund', expected: 250 },
         ],
     };
-    
+
     const previousMonthTransactions: Transaction[] = [
-        {id: 'guest-trans-1', date: `${previousMonthKey}-15`, category: 'Income', subcategory: 'Salary', amount: 5000, note: 'Paycheck'},
-        {id: 'guest-trans-2', date: `${previousMonthKey}-02`, category: 'Expenses', subcategory: 'Groceries', amount: 120.50, note: 'Trader Joes'},
-        {id: 'guest-trans-3', date: `${previousMonthKey}-05`, category: 'Expenses', subcategory: 'Eating Out', amount: 45.20, note: 'Pizza night'},
-        {id: 'guest-trans-4', date: `${previousMonthKey}-08`, category: 'Expenses', subcategory: 'Gas', amount: 55.00, note: 'Shell'},
-        {id: 'guest-trans-5', date: `${previousMonthKey}-12`, category: 'Expenses', subcategory: 'Shopping', amount: 89.99, note: 'New shoes'},
-        {id: 'guest-trans-6', date: `${previousMonthKey}-16`, category: 'Expenses', subcategory: 'Groceries', amount: 150.75, note: 'Costco run'},
-        {id: 'guest-trans-7', date: `${previousMonthKey}-22`, category: 'Expenses', subcategory: 'Eating Out', amount: 80.00, note: 'Dinner with friends'},
-        {id: 'guest-trans-8', date: `${previousMonthKey}-01`, category: 'Bills', subcategory: 'Rent', amount: 2000, note: 'Monthly Rent'},
-        {id: 'guest-trans-9', date: `${previousMonthKey}-10`, category: 'Bills', subcategory: 'Internet', amount: 60, note: 'Comcast'},
-        {id: 'guest-trans-10', date: `${previousMonthKey}-18`, category: 'Bills', subcategory: 'Phone', amount: 90, note: 'Verizon'},
-        {id: 'guest-trans-11', date: `${previousMonthKey}-25`, category: 'Bills', subcategory: 'Utilities', amount: 145.50, note: 'Power & Water'},
-        {id: 'guest-trans-12', date: `${previousMonthKey}-28`, category: 'Debts', subcategory: 'Student Loan', amount: 300, note: 'Navient Payment'},
-        {id: 'guest-trans-13', date: `${previousMonthKey}-15`, category: 'Savings', subcategory: 'Vacation Fund', amount: 300, note: 'Transfer'},
-        {id: 'guest-trans-14', date: `${previousMonthKey}-15`, category: 'Savings', subcategory: 'Emergency Fund', amount: 250, note: 'Transfer'},
+        { id: 'guest-trans-1', date: `${previousMonthKey}-15`, category: 'Income', subcategory: 'Salary', amount: 5000, note: 'Paycheck' },
+        { id: 'guest-trans-2', date: `${previousMonthKey}-02`, category: 'Expenses', subcategory: 'Groceries', amount: 120.50, note: 'Trader Joes' },
+        { id: 'guest-trans-3', date: `${previousMonthKey}-05`, category: 'Expenses', subcategory: 'Eating Out', amount: 45.20, note: 'Pizza night' },
+        { id: 'guest-trans-4', date: `${previousMonthKey}-08`, category: 'Expenses', subcategory: 'Gas', amount: 55.00, note: 'Shell' },
+        { id: 'guest-trans-5', date: `${previousMonthKey}-12`, category: 'Expenses', subcategory: 'Shopping', amount: 89.99, note: 'New shoes' },
+        { id: 'guest-trans-6', date: `${previousMonthKey}-16`, category: 'Expenses', subcategory: 'Groceries', amount: 150.75, note: 'Costco run' },
+        { id: 'guest-trans-7', date: `${previousMonthKey}-22`, category: 'Expenses', subcategory: 'Eating Out', amount: 80.00, note: 'Dinner with friends' },
+        { id: 'guest-trans-8', date: `${previousMonthKey}-01`, category: 'Bills', subcategory: 'Rent', amount: 2000, note: 'Monthly Rent' },
+        { id: 'guest-trans-9', date: `${previousMonthKey}-10`, category: 'Bills', subcategory: 'Internet', amount: 60, note: 'Comcast' },
+        { id: 'guest-trans-10', date: `${previousMonthKey}-18`, category: 'Bills', subcategory: 'Phone', amount: 90, note: 'Verizon' },
+        { id: 'guest-trans-11', date: `${previousMonthKey}-25`, category: 'Bills', subcategory: 'Utilities', amount: 145.50, note: 'Power & Water' },
+        { id: 'guest-trans-12', date: `${previousMonthKey}-28`, category: 'Debts', subcategory: 'Student Loan', amount: 300, note: 'Navient Payment' },
+        { id: 'guest-trans-13', date: `${previousMonthKey}-15`, category: 'Savings', subcategory: 'Vacation Fund', amount: 300, note: 'Transfer' },
+        { id: 'guest-trans-14', date: `${previousMonthKey}-15`, category: 'Savings', subcategory: 'Emergency Fund', amount: 250, note: 'Transfer' },
     ];
 
     const currentMonthTransactions: Transaction[] = [
-         {id: 'guest-trans-15', date: `${currentMonthKey}-01`, category: 'Bills', subcategory: 'Rent', amount: 2000, note: 'Monthly Rent'},
-         {id: 'guest-trans-16', date: `${currentMonthKey}-03`, category: 'Expenses', subcategory: 'Groceries', amount: 95.40, note: 'Safeway'},
+        { id: 'guest-trans-15', date: `${currentMonthKey}-01`, category: 'Bills', subcategory: 'Rent', amount: 2000, note: 'Monthly Rent' },
+        { id: 'guest-trans-16', date: `${currentMonthKey}-03`, category: 'Expenses', subcategory: 'Groceries', amount: 95.40, note: 'Safeway' },
     ];
 
     return {
@@ -135,7 +135,7 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
                 .from('budgets')
                 .select('month, subcategories')
                 .eq('user_id', currentUser.id);
-            
+
             if (budgetError) {
                 console.error("Error fetching budgets:", budgetError);
                 setIsLoaded(true);
@@ -144,18 +144,18 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
 
             // If no budgets exist for a regular user, create the first one.
             if (budgets.length === 0) {
-                 const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-                 const { data: newBudgets } = await supabase.from('budgets').insert({
-                     user_id: currentUser.id,
-                     month: currentMonth,
-                     subcategories: blankSubcategories,
-                 }).select('month, subcategories');
-                 
-                 if (newBudgets && newBudgets.length > 0) {
-                     budgets.push(newBudgets[0]);
-                 }
+                const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+                const { data: newBudgets } = await supabase.from('budgets').insert({
+                    user_id: currentUser.id,
+                    month: currentMonth,
+                    subcategories: blankSubcategories,
+                }).select('month, subcategories');
+
+                if (newBudgets && newBudgets.length > 0) {
+                    budgets.push(newBudgets[0]);
+                }
             }
-            
+
             const { data: transactions, error: transError } = await supabase
                 .from('transactions')
                 .select('id, date, category, subcategory, amount, note, month')
@@ -179,9 +179,9 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
                     newAllData[transaction.month].transactions.push(transaction as Transaction);
                 }
             }
-            
+
             for (const month in newAllData) {
-                newAllData[month].transactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                newAllData[month].transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             }
 
             setAllData(newAllData);
@@ -195,7 +195,7 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
 
     const updateMonthData = useCallback(async (data: Partial<MonthData>) => {
         if (!currentUser) return;
-        
+
         const prevAllData = allData;
         const newAllData = {
             ...allData,
@@ -230,12 +230,12 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
             const newTransaction: Transaction = { ...transaction, id: crypto.randomUUID() };
             const currentMonth = allData[selectedMonth] || { transactions: [], subcategories: blankSubcategories };
             const newTransactions = [newTransaction, ...currentMonth.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            const newAllData = { ...allData, [selectedMonth]: { ...currentMonth, transactions: newTransactions }};
+            const newAllData = { ...allData, [selectedMonth]: { ...currentMonth, transactions: newTransactions } };
             setAllData(newAllData);
             setGuestDataInStorage(newAllData);
             return;
         }
-        
+
         const transactionData = { ...transaction, user_id: currentUser.id, month: selectedMonth };
         const { data, error } = await supabase.from('transactions').insert(transactionData).select().single();
 
@@ -243,10 +243,10 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
             console.error("Error adding transaction:", error);
             return;
         }
-        
+
         const newTransaction: Transaction = data as Transaction;
         const newTransactions = [newTransaction, ...currentMonthData.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setAllData(prev => ({ ...prev, [selectedMonth]: {...prev[selectedMonth], transactions: newTransactions }}));
+        setAllData(prev => ({ ...prev, [selectedMonth]: { ...prev[selectedMonth], transactions: newTransactions } }));
     }, [currentMonthData.transactions, selectedMonth, currentUser, allData, setGuestDataInStorage]);
 
     const updateTransaction = useCallback(async (updatedTransaction: Transaction) => {
@@ -266,13 +266,13 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
             console.error("Error updating transaction:", error);
             return;
         }
-        setAllData(prev => ({ ...prev, [selectedMonth]: {...prev[selectedMonth], transactions: newTransactions }}));
+        setAllData(prev => ({ ...prev, [selectedMonth]: { ...prev[selectedMonth], transactions: newTransactions } }));
     }, [currentMonthData.transactions, selectedMonth, currentUser, allData, setGuestDataInStorage]);
 
     const deleteTransaction = useCallback(async (id: string) => {
         if (!currentUser) return;
         const newTransactions = currentMonthData.transactions.filter(t => t.id !== id);
-        
+
         if (currentUser.id === GUEST_USER_ID) {
             const newAllData = { ...allData, [selectedMonth]: { ...allData[selectedMonth], transactions: newTransactions } };
             setAllData(newAllData);
@@ -285,13 +285,13 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
             console.error("Error deleting transaction:", error);
             return;
         }
-        setAllData(prev => ({ ...prev, [selectedMonth]: {...prev[selectedMonth], transactions: newTransactions }}));
+        setAllData(prev => ({ ...prev, [selectedMonth]: { ...prev[selectedMonth], transactions: newTransactions } }));
     }, [currentMonthData.transactions, selectedMonth, currentUser, allData, setGuestDataInStorage]);
-    
+
     const addSubcategory = useCallback(async (category: CategoryName, name: string, expected = 0) => {
         const newSub: Subcategory = { id: crypto.randomUUID(), name, expected };
         const currentSubs = currentMonthData.subcategories[category] || [];
-        const newSubcategories = { ...currentMonthData.subcategories, [category]: [...currentSubs, newSub]};
+        const newSubcategories = { ...currentMonthData.subcategories, [category]: [...currentSubs, newSub] };
         await updateMonthData({ subcategories: newSubcategories });
         return newSub;
     }, [currentMonthData.subcategories, updateMonthData]);
@@ -300,42 +300,42 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
         const newSubcategories = { ...currentMonthData.subcategories, [category]: currentMonthData.subcategories[category].filter(sub => sub.id !== id) };
         await updateMonthData({ subcategories: newSubcategories });
     }, [currentMonthData.subcategories, updateMonthData]);
-    
+
     const updateSubcategory = useCallback(async (category: CategoryName, id: string, newName: string) => {
-        const newSubcategories = { ...currentMonthData.subcategories, [category]: currentMonthData.subcategories[category].map(sub => sub.id === id ? {...sub, name: newName} : sub)};
+        const newSubcategories = { ...currentMonthData.subcategories, [category]: currentMonthData.subcategories[category].map(sub => sub.id === id ? { ...sub, name: newName } : sub) };
         await updateMonthData({ subcategories: newSubcategories });
     }, [currentMonthData.subcategories, updateMonthData]);
 
     const updateSubcategoryExpected = useCallback(async (category: CategoryName, id: string, amount: number) => {
-        const newSubcategories = { ...currentMonthData.subcategories, [category]: currentMonthData.subcategories[category].map(sub => sub.id === id ? {...sub, expected: amount} : sub)};
+        const newSubcategories = { ...currentMonthData.subcategories, [category]: currentMonthData.subcategories[category].map(sub => sub.id === id ? { ...sub, expected: amount } : sub) };
         await updateMonthData({ subcategories: newSubcategories });
     }, [currentMonthData.subcategories, updateMonthData]);
 
     const toggleSubcategoryExcludeFromBudget = useCallback(async (category: CategoryName, id: string) => {
-        const newSubcategories = { 
-            ...currentMonthData.subcategories, 
-            [category]: currentMonthData.subcategories[category].map(sub => 
-                sub.id === id ? {...sub, excludeFromBudget: !sub.excludeFromBudget} : sub
+        const newSubcategories = {
+            ...currentMonthData.subcategories,
+            [category]: currentMonthData.subcategories[category].map(sub =>
+                sub.id === id ? { ...sub, excludeFromBudget: !sub.excludeFromBudget } : sub
             )
         };
         await updateMonthData({ subcategories: newSubcategories });
     }, [currentMonthData.subcategories, updateMonthData]);
 
-  const actualAmounts = useMemo(() => {
-    return currentMonthData.transactions.reduce((acc, transaction) => {
-      // Check if the transaction's subcategory is excluded from budget
-      const categorySubcategories = currentMonthData.subcategories[transaction.category] || [];
-      const subcategory = categorySubcategories.find(sub => sub.name === transaction.subcategory);
-      
-      // Skip if excluded from budget
-      if (subcategory?.excludeFromBudget) {
-        return acc;
-      }
-      
-      acc[transaction.category] = (acc[transaction.category] || 0) + transaction.amount;
-      return acc;
-    }, {} as Record<CategoryName, number>);
-  }, [currentMonthData.transactions, currentMonthData.subcategories]);    const actualsBySubcategory = useMemo(() => {
+    const actualAmounts = useMemo(() => {
+        return currentMonthData.transactions.reduce((acc, transaction) => {
+            // Check if the transaction's subcategory is excluded from budget
+            const categorySubcategories = currentMonthData.subcategories[transaction.category] || [];
+            const subcategory = categorySubcategories.find(sub => sub.name === transaction.subcategory);
+
+            // Skip if excluded from budget
+            if (subcategory?.excludeFromBudget) {
+                return acc;
+            }
+
+            acc[transaction.category] = (acc[transaction.category] || 0) + transaction.amount;
+            return acc;
+        }, {} as Record<CategoryName, number>);
+    }, [currentMonthData.transactions, currentMonthData.subcategories]); const actualsBySubcategory = useMemo(() => {
         const bySub: Record<CategoryName, Record<string, number>> = { Income: {}, Expenses: {}, Bills: {}, Debts: {}, Savings: {} };
         for (const transaction of currentMonthData.transactions) {
             const { category, subcategory, amount } = transaction;
@@ -346,17 +346,17 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
         return bySub;
     }, [currentMonthData.transactions]);
 
-  const expectedAmounts = useMemo(() => {
-    const newExpected: Record<CategoryName, number> = { Income: 0, Expenses: 0, Bills: 0, Debts: 0, Savings: 0 };
-    for (const category of CATEGORY_NAMES) {
-      newExpected[category] = currentMonthData.subcategories[category]?.reduce((sum, sub) => {
-        // Skip subcategories excluded from budget
-        if (sub.excludeFromBudget) return sum;
-        return sum + sub.expected;
-      }, 0) || 0;
-    }
-    return newExpected;
-  }, [currentMonthData.subcategories]);    const createNewMonth = useCallback(async (month: string, option: 'copy' | 'blank' | 'scratch') => {
+    const expectedAmounts = useMemo(() => {
+        const newExpected: Record<CategoryName, number> = { Income: 0, Expenses: 0, Bills: 0, Debts: 0, Savings: 0 };
+        for (const category of CATEGORY_NAMES) {
+            newExpected[category] = currentMonthData.subcategories[category]?.reduce((sum, sub) => {
+                // Skip subcategories excluded from budget
+                if (sub.excludeFromBudget) return sum;
+                return sum + sub.expected;
+            }, 0) || 0;
+        }
+        return newExpected;
+    }, [currentMonthData.subcategories]); const createNewMonth = useCallback(async (month: string, option: 'copy' | 'blank' | 'scratch') => {
         if (!currentUser || allData[month]) return;
 
         let subcategoriesToUse: Subcategories;
@@ -373,7 +373,7 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
                 }
             }
         }
-        
+
         const newAllData = { ...allData, [month]: { transactions: [], subcategories: subcategoriesToUse } };
         setAllData(newAllData);
 
@@ -404,7 +404,7 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
             setGuestDataInStorage(newData);
             return;
         }
-        
+
         const { error: budgetError } = await supabase.from('budgets').delete().match({ user_id: currentUser.id, month: monthToDelete });
         const { error: transError } = await supabase.from('transactions').delete().match({ user_id: currentUser.id, month: monthToDelete });
 
@@ -444,5 +444,6 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
         availableMonths,
         createNewMonth,
         deleteMonth,
+        allData, // Expose all data for dashboard charts
     };
 };
