@@ -57,11 +57,11 @@ const FlightPathChart: React.FC<FlightPathChartProps> = ({ transactions, selecte
   return (
     <div className={`${FUTURISTIC_GLASS_STYLE} p-4`}>
       <h3 className="text-lg font-bold text-white mb-1">Flight Path</h3>
-      <p className="text-xs text-gray-400 mb-4">Daily Income vs. Spending for {selectedMonth}</p>
+      <p className="text-xs text-gray-400 mb-2">Daily Income vs. Spending for {selectedMonth}</p>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart
           data={chartData}
-          margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+          margin={{ top: 35, right: 10, left: 0, bottom: 20 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
           <XAxis
@@ -87,9 +87,10 @@ const FlightPathChart: React.FC<FlightPathChartProps> = ({ transactions, selecte
             formatter={(value: number) => `$${value.toLocaleString()}`}
           />
           <Legend
-            wrapperStyle={{ fontSize: 11, paddingTop: '10px' }}
+            wrapperStyle={{ fontSize: 11, paddingBottom: '15px' }}
             iconType="line"
-            verticalAlign="bottom"
+            verticalAlign="top"
+            align="center"
           />
           <Line
             type="monotone"
