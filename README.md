@@ -1,22 +1,22 @@
-# Zenith Budget 💰
+# Zenith Budget 
 
 A personalized budgeting application built with modern web technologies, designed with all the features I always wanted in budgeting apps but could never find in one place.
 
 ---
 
-## 🎯 Objective
+## Objective
 
 This project was created to build a full-stack application that addresses my personal budgeting needs. It combines intuitive transaction tracking, AI-powered expense parsing, visual analytics, and customizable categories into a single, cohesive tool.
 
 ---
 
-## 💡 Why
+## Why
 
 I wanted a budgeting app that truly worked the way I think about money—with flexibility, clarity, and powerful features like AI transaction parsing. Instead of settling for existing solutions that only partially fit my workflow, I built exactly what I needed while learning full-stack development.
 
 ---
 
-## ⚙️ How It Works
+## How It Works
 
 The application is built with:
 - **Frontend**: React + TypeScript + Vite for a fast, type-safe UI
@@ -29,7 +29,7 @@ Users can create monthly budgets, track transactions across customizable categor
 
 ---
 
-## 🚀 Try It Out
+## Try It Out
 
 Follow the link https://zenith-budget.vercel.app/
 
@@ -37,7 +37,7 @@ If you encounter any bugs or have feature suggestions, please open an issue or s
 
 ---
 
-## 🏗 Future Plans
+## Future Plans
 
 - Add recurring transaction support
 - Implement budget forecasting and predictions
@@ -45,7 +45,7 @@ If you encounter any bugs or have feature suggestions, please open an issue or s
 
 ---
 
-## 📚 What I Learned
+## What I Learned
 
 Throughout this project I built comprehensive full-stack development skills:
 
@@ -61,15 +61,15 @@ Throughout this project I built comprehensive full-stack development skills:
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-- 📊 **Visual Analytics**: Interactive pie charts and spending trend visualizations
-- 🤖 **AI Transaction Parsing**: Natural language expense input powered by Google Gemini
-- 🗓️ **Multi-Month Management**: Track budgets across different time periods
-- 🎨 **Customizable Categories**: Create and manage personalized spending categories
-- 🔒 **Secure Authentication**: User accounts with Supabase Auth
-- 📱 **Responsive Design**: Works seamlessly on desktop and mobile devices
-- ⚡ **Real-time Updates**: Instant data synchronization across sessions
+- **Visual Analytics**: Interactive pie charts and spending trend visualizations
+- **AI Transaction Parsing**: Natural language expense input powered by Google Gemini
+- **Multi-Month Management**: Track budgets across different time periods
+- **Customizable Categories**: Create and manage personalized spending categories
+- **Secure Authentication**: User accounts with Supabase Auth
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
+- **Real-time Updates**: Instant data synchronization across sessions
 
 ---
 
