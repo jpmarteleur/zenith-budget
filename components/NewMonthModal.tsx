@@ -7,21 +7,32 @@ type CreationOption = 'copy' | 'blank' | 'scratch';
 interface NewMonthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (month: string, option: CreationOption) => void;
+  // new signature: optional sourceMonth when copying
+  onCreate: (month: string, option: CreationOption, sourceMonth?: string) => void;
   month: string;
-  previousMonthFormatted: string;
+  availableMonths: string[];
 }
 
-const NewMonthModal: React.FC<NewMonthModalProps> = ({ isOpen, onClose, onCreate, month, previousMonthFormatted }) => {
+const NewMonthModal: React.FC<NewMonthModalProps> = ({ isOpen, onClose, onCreate, month, availableMonths }) => {
   const [creationOption, setCreationOption] = useState<CreationOption>('copy');
+  const [selectedMonth, setSelectedMonth] = useState<string>(month);
+  // sourceMonth used when copying: default to previous month relative to selectedMonth
+  const getPreviousMonthStr = (monthStr: string) => {
+    const [y, m] = monthStr.split('-').map(Number);
+    const d = new Date(y, m - 1);
+    d.setMonth(d.getMonth() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+  const defaultSource = getPreviousMonthStr(selectedMonth);
+  const [sourceMonth, setSourceMonth] = useState<string>(defaultSource);
 
   if (!isOpen) return null;
 
   const handleCreate = () => {
-    onCreate(month, creationOption);
+    onCreate(selectedMonth, creationOption, creationOption === 'copy' ? sourceMonth : undefined);
   };
 
-  const formattedMonth = new Date(month + '-02').toLocaleString('default', { month: 'long', year: 'numeric' });
+  const formattedMonth = new Date(selectedMonth + '-02').toLocaleString('default', { month: 'long', year: 'numeric' });
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
@@ -44,15 +55,46 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ isOpen, onClose, onCreate
           </button>
         </div>
 
-        <p className="text-gray-400 mb-6">How would you like to set up this month's budget?</p>
+        <div className="mb-4">
+          <label className="text-sm text-gray-400 block mb-2">Month</label>
+          <input
+            type="month"
+            value={selectedMonth}
+            onChange={e => {
+              setSelectedMonth(e.target.value);
+              // update default source when selected month changes
+              setSourceMonth(getPreviousMonthStr(e.target.value));
+            }}
+            className="w-full bg-gray-900/50 border border-cyan-400/30 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          />
+          <p className="text-xs text-gray-500 mt-1">Choose any month — past, current, or future.</p>
+        </div>
+
+        <p className="text-gray-400 mb-4">How would you like to set up this month's budget?</p>
 
         <div className="space-y-4">
           <div 
             onClick={() => setCreationOption('copy')}
             className={`p-4 border rounded-lg cursor-pointer transition-all ${creationOption === 'copy' ? 'bg-cyan-500/20 border-cyan-400' : 'bg-white/5 border-white/10 hover:border-white/20'}`}
           >
-            <h4 className="font-semibold text-white">Copy budget from {previousMonthFormatted}</h4>
-            <p className="text-sm text-gray-400 mt-1">Start with the same 'Expected' amounts from last month.</p>
+            <h4 className="font-semibold text-white">Copy budget from another month</h4>
+            <p className="text-sm text-gray-400 mt-1">Copy the 'Expected' amounts from a source month.</p>
+            {creationOption === 'copy' && (
+              <div className="mt-3">
+                <label className="text-xs text-gray-400">Source month</label>
+                <select
+                  value={sourceMonth}
+                  onChange={e => setSourceMonth(e.target.value)}
+                  className="mt-1 w-full bg-gray-900/50 border border-cyan-400/30 rounded-md py-2 px-3 text-sm text-gray-200"
+                >
+                  {/* default: previous month relative to selectedMonth */}
+                  <option value={getPreviousMonthStr(selectedMonth)}>Previous month ({new Date(getPreviousMonthStr(selectedMonth) + '-02').toLocaleString('default',{month:'long', year:'numeric'})})</option>
+                  {availableMonths.map(m => (
+                    <option key={m} value={m}>{new Date(m + '-02').toLocaleString('default',{month:'long', year:'numeric'})}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
           <div 
             onClick={() => setCreationOption('blank')}

@@ -16,7 +16,7 @@ interface NavBarProps {
   selectedMonth: string;
   setSelectedMonth: (month: string) => void;
   availableMonths: string[];
-  createNewMonth: (month: string, option: CreationOption) => void;
+  createNewMonth: (month: string, option: CreationOption, sourceMonth?: string) => void;
   deleteMonth: (month: string) => void;
 }
 
@@ -74,8 +74,8 @@ const NavBar: React.FC<NavBarProps> = ({ activePage, setActivePage, selectedMont
     }
   };
   
-  const handleCreateMonth = (month: string, option: CreationOption) => {
-    createNewMonth(month, option);
+  const handleCreateMonth = (month: string, option: CreationOption, sourceMonth?: string) => {
+    createNewMonth(month, option, sourceMonth);
     setSelectedMonth(month);
     setIsModalOpen(false);
   };
@@ -145,7 +145,7 @@ const NavBar: React.FC<NavBarProps> = ({ activePage, setActivePage, selectedMont
         onClose={() => setIsModalOpen(false)}
         onCreate={handleCreateMonth}
         month={nextMonth}
-        previousMonthFormatted={formatMonth(mostRecentMonth)}
+        availableMonths={availableMonths}
       />
       <ConfirmationModal
         isOpen={isConfirmOpen}

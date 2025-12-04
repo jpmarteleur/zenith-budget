@@ -356,17 +356,41 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
             }, 0) || 0;
         }
         return newExpected;
-    }, [currentMonthData.subcategories]); const createNewMonth = useCallback(async (month: string, option: 'copy' | 'blank' | 'scratch') => {
+    }, [currentMonthData.subcategories]);
+
+    // Accept an optional sourceMonth when copying
+    const createNewMonth = useCallback(async (month: string, option: 'copy' | 'blank' | 'scratch', sourceMonth?: string) => {
         if (!currentUser || allData[month]) return;
 
         let subcategoriesToUse: Subcategories;
         if (option === 'scratch') {
             subcategoriesToUse = blankSubcategories;
         } else {
-            const sortedMonths = Object.keys(allData).sort().reverse();
-            const lastMonthWithData = sortedMonths.length > 0 ? sortedMonths[0] : null;
-            const subcategoriesToCopyFrom = lastMonthWithData ? allData[lastMonthWithData].subcategories : blankSubcategories;
+            // Helper to compute previous month string
+            const getPreviousMonthStr = (monthStr: string) => {
+                const [y, m] = monthStr.split('-').map(Number);
+                const d = new Date(y, m - 1);
+                d.setMonth(d.getMonth() - 1);
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            };
+
+            // Determine source to copy from: explicit sourceMonth (if provided and exists), else previous month relative to target, else fallback to most recent month
+            let sourceToUse: string | null = null;
+            if (sourceMonth && allData[sourceMonth]) {
+                sourceToUse = sourceMonth;
+            } else {
+                const prev = getPreviousMonthStr(month);
+                if (allData[prev]) {
+                    sourceToUse = prev;
+                } else {
+                    const sortedMonths = Object.keys(allData).sort().reverse();
+                    sourceToUse = sortedMonths.length > 0 ? sortedMonths[0] : null;
+                }
+            }
+
+            const subcategoriesToCopyFrom = sourceToUse ? allData[sourceToUse].subcategories : blankSubcategories;
             subcategoriesToUse = JSON.parse(JSON.stringify(subcategoriesToCopyFrom));
+
             if (option === 'blank') {
                 for (const category in subcategoriesToUse) {
                     (subcategoriesToUse[category as CategoryName] as Subcategory[]).forEach(sub => { sub.expected = 0; });
