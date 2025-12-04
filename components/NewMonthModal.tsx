@@ -55,8 +55,8 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ isOpen, onClose, onCreate
           </button>
         </div>
 
-        <div className="mb-4">
-          <label className="text-sm text-gray-400 block mb-2">Month</label>
+        <div className="mb-3">
+          <label className="text-xs text-gray-400 block mb-1">Month</label>
           <input
             type="month"
             value={selectedMonth}
@@ -65,9 +65,9 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ isOpen, onClose, onCreate
               // update default source when selected month changes
               setSourceMonth(getPreviousMonthStr(e.target.value));
             }}
-            className="w-full bg-gray-900/50 border border-cyan-400/30 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="w-full bg-gray-900/50 border border-cyan-400/30 rounded-md py-1 px-2 text-xs text-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
           />
-          <p className="text-xs text-gray-500 mt-1">Choose any month: past, current, or future.</p>
+          <p className="text-xs text-gray-500 mt-0.5">Choose any month: past, current, or future.</p>
         </div>
 
         <p className="text-gray-400 mb-4">How would you like to set up this month's budget?</p>
