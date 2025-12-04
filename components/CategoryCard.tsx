@@ -50,10 +50,13 @@ const SubcategoryRow: React.FC<{
     };
 
     const isIncome = categoryName === 'Income';
+    const isSavings = categoryName === 'Savings';
     // For income: remaining = actual - expected (positive means more income than expected)
     // For expenses: remaining = expected - actual (positive means budget left)
-    const remaining = isIncome ? actual - sub.expected : sub.expected - actual;
-    const remainingColor = remaining >= 0 ? 'text-emerald-400' : 'text-red-500';
+    // For savings: remaining = actual (amount saved)
+    const remaining = isSavings ? actual : isIncome ? actual - sub.expected : sub.expected - actual;
+    // For savings: grey at $0, green when positive
+    const remainingColor = isSavings ? (remaining > 0 ? 'text-emerald-400' : 'text-gray-500') : remaining >= 0 ? 'text-emerald-400' : 'text-red-500';
 
     return (
         <tr className={`hover:bg-cyan-400/10 ${sub.excludeFromBudget ? 'opacity-50' : ''}`}>
@@ -173,7 +176,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
                 <th className="px-1 py-1" title="Exclude from budget"></th>
                 <th className="px-1 py-1 text-left">Subcategory</th>
                 <th className="px-1 py-1 text-right border-l border-cyan-400/10">Expected</th>
-                <th className="px-1 py-1 text-right border-l border-cyan-400/10">Remaining</th>
+                <th className="px-1 py-1 text-right border-l border-cyan-400/10">{categoryName === 'Savings' ? 'Saved' : 'Remaining'}</th>
                 <th className="px-1 py-1"></th>
               </tr>
             </thead>
