@@ -56,7 +56,10 @@ const SubcategoryRow: React.FC<{
     // For savings: remaining = actual (amount saved)
     const remaining = isSavings ? actual : isIncome ? actual - sub.expected : sub.expected - actual;
     // For savings: grey at $0, green when positive
-    const remainingColor = isSavings ? (remaining > 0 ? 'text-emerald-400' : 'text-gray-500') : remaining >= 0 ? 'text-emerald-400' : 'text-red-500';
+    // For others: grey at $0, green if positive, red if negative
+    const remainingColor = isSavings 
+      ? (remaining > 0 ? 'text-emerald-400' : 'text-gray-500') 
+      : remaining > 0 ? 'text-emerald-400' : remaining < 0 ? 'text-red-500' : 'text-gray-500';
 
     return (
         <tr className={`hover:bg-cyan-400/10 ${sub.excludeFromBudget ? 'opacity-50' : ''}`}>
