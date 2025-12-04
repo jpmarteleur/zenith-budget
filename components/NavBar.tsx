@@ -110,7 +110,7 @@ const NavBar: React.FC<NavBarProps> = ({ activePage, setActivePage, selectedMont
                             {availableMonths.map(month => (
                                 <option key={month} value={month}>{formatMonth(month)}</option>
                             ))}
-                            {showCreateNew && <option value="new">Create budget for {formatMonth(nextMonth)}</option>}
+                            {showCreateNew && <option value="new">Create a new budget for a month</option>}
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
                             <ChevronDownIcon className="w-4 h-4" />

@@ -49,7 +49,7 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ isOpen, onClose, onCreate
         `}</style>
 
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-white">Create Budget for {formattedMonth}</h3>
+          <h3 className="text-xl font-bold text-white">Create a new budget for a month</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
             <XIcon className="w-6 h-6"/>
           </button>
