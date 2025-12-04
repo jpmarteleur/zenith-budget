@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FUTURISTIC_GLASS_STYLE } from '../constants';
 import XIcon from './icons/XIcon';
 
@@ -25,6 +25,18 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ isOpen, onClose, onCreate
   };
   const defaultSource = getPreviousMonthStr(selectedMonth);
   const [sourceMonth, setSourceMonth] = useState<string>(defaultSource);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

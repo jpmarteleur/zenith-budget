@@ -19,6 +19,14 @@ interface TransactionFormProps {
 const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subcategories, addSubcategory, onClose, selectedMonth }) => {
   const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai');
 
+  // Lock body scroll when form is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
   const [monthMin, monthMax] = useMemo(() => {
     if (!selectedMonth) return ['', ''];
     const [year, month] = selectedMonth.split('-').map(Number);
