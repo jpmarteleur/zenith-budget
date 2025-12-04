@@ -35,9 +35,9 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ isOpen, onClose, onCreate
   const formattedMonth = new Date(selectedMonth + '-02').toLocaleString('default', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
       <div 
-        className={`${FUTURISTIC_GLASS_STYLE} w-full max-w-md p-6 rounded-2xl animate-fade-in`}
+        className={`${FUTURISTIC_GLASS_STYLE} w-full max-w-md p-4 sm:p-6 rounded-2xl animate-fade-in my-auto`}
         onClick={e => e.stopPropagation()}
       >
         <style>{`
