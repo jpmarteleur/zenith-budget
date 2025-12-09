@@ -9,7 +9,8 @@ interface BudgetIndicatorProps {
 
 const BudgetIndicator: React.FC<BudgetIndicatorProps> = ({ title, amount }) => {
     const { formatCurrency } = useSettings();
-    const amountColor = amount > 0 ? 'text-emerald-400' : amount < 0 ? 'text-red-500' : 'text-white';
+    const tolerance = 0.001; // Treat values within 0.001 as zero
+    const amountColor = amount > tolerance ? 'text-emerald-400' : amount < -tolerance ? 'text-red-500' : 'text-white';
 
     return (
         <div className={`${FUTURISTIC_GLASS_STYLE} p-4 flex flex-col items-center justify-center text-center`}>
