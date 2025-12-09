@@ -75,7 +75,7 @@ const BudgetPage: React.FC<BudgetPageProps> = (props) => {
               categoryName={catName}
               expected={expectedAmounts[catName] || 0}
               actual={actualAmounts[catName] || 0}
-              subcategories={subcategories[catName]}
+              subcategories={subcategories[catName] || []}
               actualsBySubcategory={actualsBySubcategory[catName] || {}}
               onAddSubcategory={addSubcategory}
               onDeleteSubcategory={deleteSubcategory}

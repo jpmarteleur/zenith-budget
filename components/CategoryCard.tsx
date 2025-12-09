@@ -11,7 +11,7 @@ interface CategoryCardProps {
   categoryName: CategoryName;
   expected: number;
   actual: number;
-  subcategories: Subcategory[];
+  subcategories: Subcategory[] | undefined;
   actualsBySubcategory: Record<string, number>;
   onAddSubcategory: (category: CategoryName, name: string, expected: number) => void;
   onDeleteSubcategory: (category: CategoryName, id: string) => void;
@@ -198,7 +198,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-cyan-400/10">
-              {subcategories.map(sub => (
+              {(subcategories || []).map(sub => (
                 <SubcategoryRow
                   key={sub.id}
                   sub={sub}
