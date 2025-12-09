@@ -15,7 +15,7 @@ type AllBudgetData = Record<string, MonthData>;
 const LOCAL_STORAGE_KEY = 'zenith-guest-budget';
 
 const blankSubcategories: Subcategories = {
-    Income: [], Expenses: [], Bills: [], Debts: [], Savings: [],
+    Income: [], Expenses: [], Bills: [], Savings: [], Investments: [], Debts: [],
 };
 
 // --- GUEST DEMO DATA ---
@@ -41,11 +41,14 @@ const getGuestInitialData = (): AllBudgetData => {
             { id: 'sub-bill-3', name: 'Phone', expected: 90 },
             { id: 'sub-bill-4', name: 'Utilities', expected: 150 },
         ],
-        Debts: [{ id: 'sub-debt-1', name: 'Student Loan', expected: 300 }],
-        Savings: [
-            { id: 'sub-save-1', name: 'Vacation Fund', expected: 300 },
-            { id: 'sub-save-2', name: 'Emergency Fund', expected: 250 },
-        ],
+            Debts: [{ id: 'sub-debt-1', name: 'Student Loan', expected: 300 }],
+            Savings: [
+                { id: 'sub-save-1', name: 'Vacation Fund', expected: 300 },
+                { id: 'sub-save-2', name: 'Emergency Fund', expected: 250 },
+            ],
+            Investments: [
+                { id: 'sub-invest-1', name: 'Brokerage', expected: 200 },
+            ],
     };
 
     const previousMonthTransactions: Transaction[] = [
@@ -335,8 +338,10 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
             acc[transaction.category] = (acc[transaction.category] || 0) + transaction.amount;
             return acc;
         }, {} as Record<CategoryName, number>);
-    }, [currentMonthData.transactions, currentMonthData.subcategories]); const actualsBySubcategory = useMemo(() => {
-        const bySub: Record<CategoryName, Record<string, number>> = { Income: {}, Expenses: {}, Bills: {}, Debts: {}, Savings: {} };
+    }, [currentMonthData.transactions, currentMonthData.subcategories]);
+
+    const actualsBySubcategory = useMemo(() => {
+        const bySub: Record<CategoryName, Record<string, number>> = { Income: {}, Expenses: {}, Bills: {}, Savings: {}, Investments: {}, Debts: {} };
         for (const transaction of currentMonthData.transactions) {
             const { category, subcategory, amount } = transaction;
             if (!bySub[category]) bySub[category] = {};
@@ -347,7 +352,7 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
     }, [currentMonthData.transactions]);
 
     const expectedAmounts = useMemo(() => {
-        const newExpected: Record<CategoryName, number> = { Income: 0, Expenses: 0, Bills: 0, Debts: 0, Savings: 0 };
+        const newExpected: Record<CategoryName, number> = { Income: 0, Expenses: 0, Bills: 0, Savings: 0, Investments: 0, Debts: 0 };
         for (const category of CATEGORY_NAMES) {
             newExpected[category] = currentMonthData.subcategories[category]?.reduce((sum, sub) => {
                 // Skip subcategories excluded from budget
@@ -439,11 +444,11 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
     }, [allData, currentUser, setGuestDataInStorage]);
 
     const totalExpectedIncome = expectedAmounts.Income;
-    const totalExpectedSpending = (expectedAmounts.Expenses + expectedAmounts.Bills + expectedAmounts.Debts + expectedAmounts.Savings);
+    const totalExpectedSpending = (expectedAmounts.Expenses + expectedAmounts.Bills + expectedAmounts.Savings + expectedAmounts.Investments + expectedAmounts.Debts);
     const remainingToBudget = totalExpectedIncome - totalExpectedSpending;
 
     const totalActualIncome = actualAmounts.Income || 0;
-    const totalActualSpending = (actualAmounts.Expenses || 0) + (actualAmounts.Bills || 0) + (actualAmounts.Debts || 0) + (actualAmounts.Savings || 0);
+    const totalActualSpending = (actualAmounts.Expenses || 0) + (actualAmounts.Bills || 0) + (actualAmounts.Savings || 0) + (actualAmounts.Investments || 0) + (actualAmounts.Debts || 0);
     const remainingToSpend = totalActualIncome - totalActualSpending;
 
     const availableMonths = useMemo(() => Object.keys(allData).sort().reverse(), [allData]);

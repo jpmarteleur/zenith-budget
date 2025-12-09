@@ -9,7 +9,7 @@ const schema = {
     },
     category: {
       type: Type.STRING,
-      description: "The main category. Must be one of: 'Income', 'Expenses', 'Bills', 'Debts', 'Savings'.",
+      description: "The main category. Must be one of: 'Income', 'Expenses', 'Bills', 'Savings', 'Investments', 'Debts'.",
     },
     subcategory: {
       type: Type.STRING,
@@ -49,7 +49,7 @@ export default async function handler(req: any, res: any) {
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Parse the following transaction. Your primary goal is to categorize it into an existing subcategory if one is a good match. Only create a new subcategory if none of the existing ones are suitable. For income, use the 'Income' category. For spending, decide if it's a general 'Expense', a recurring 'Bill', a payment towards 'Debt', or putting money into 'Savings'. ${subcategoryContext} Today's date is ${new Date().toISOString().split('T')[0]}. Transaction: "${text}"`,
+      contents: `Parse the following transaction. Your primary goal is to categorize it into an existing subcategory if one is a good match. Only create a new subcategory if none of the existing ones are suitable. For income, use the 'Income' category. For spending, decide if it's a general 'Expense', a recurring 'Bill', a payment towards 'Debt', or putting money into 'Savings' or 'Investments'. ${subcategoryContext} Today's date is ${new Date().toISOString().split('T')[0]}. Transaction: "${text}"`,
       config: {
         responseMimeType: "application/json",
         responseSchema: schema,

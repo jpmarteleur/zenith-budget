@@ -70,7 +70,7 @@ export default defineConfig(({ mode }) => {
                   type: Type.OBJECT,
                   properties: {
                     amount: { type: Type.NUMBER, description: 'The transaction amount as a positive number.' },
-                    category: { type: Type.STRING, description: "The main category. Must be one of: 'Income', 'Expenses', 'Bills', 'Debts', 'Savings'." },
+                    category: { type: Type.STRING, description: "The main category. Must be one of: 'Income', 'Expenses', 'Bills', 'Savings', 'Investments', 'Debts'." },
                     subcategory: { type: Type.STRING, description: "A specific, concise subcategory for the transaction (e.g., 'Groceries', 'Paycheck', 'Rent'). If a suitable existing subcategory is provided, use it. Otherwise, create a new, relevant one." },
                     note: { type: Type.STRING, description: "Any additional details or the original merchant name (e.g., 'Chipotle lunch')." },
                   },
@@ -79,7 +79,7 @@ export default defineConfig(({ mode }) => {
 
                 const result = await ai.models.generateContent({
                   model: 'gemini-2.5-flash',
-                  contents: `Parse the following transaction. Your primary goal is to categorize it into an existing subcategory if one is a good match. Only create a new subcategory if none of the existing ones are suitable. For income, use the 'Income' category. For spending, decide if it's a general 'Expense', a recurring 'Bill', a payment towards 'Debt', or putting money into 'Savings'. ${subcategoryContext} Today\'s date is ${new Date().toISOString().split('T')[0]}. Transaction: "${text}"`,
+                  contents: `Parse the following transaction. Your primary goal is to categorize it into an existing subcategory if one is a good match. Only create a new subcategory if none of the existing ones are suitable. For income, use the 'Income' category. For spending, decide if it's a general 'Expense', a recurring 'Bill', a payment towards 'Debt', or putting money into 'Savings' or 'Investments'. ${subcategoryContext} Today's date is ${new Date().toISOString().split('T')[0]}. Transaction: "${text}"`,
                   config: { responseMimeType: 'application/json', responseSchema: schema },
                 });
 
