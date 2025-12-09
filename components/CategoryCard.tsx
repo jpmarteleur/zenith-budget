@@ -51,15 +51,29 @@ const SubcategoryRow: React.FC<{
 
     const isIncome = categoryName === 'Income';
     const isSavings = categoryName === 'Savings';
+    const isInvestments = categoryName === 'Investments';
     // For income: remaining = actual - expected (positive means more income than expected)
     // For expenses: remaining = expected - actual (positive means budget left)
-    // For savings: remaining = actual (amount saved)
-    const remaining = isSavings ? actual : isIncome ? actual - sub.expected : sub.expected - actual;
-    // For savings: grey at $0, green when positive
-    // For others: grey at $0, green if positive, red if negative
-    const remainingColor = isSavings 
-      ? (remaining > 0 ? 'text-emerald-400' : 'text-gray-500') 
-      : remaining > 0 ? 'text-emerald-400' : remaining < 0 ? 'text-red-500' : 'text-gray-500';
+    // For savings/investments: remaining = actual (amount saved/invested)
+    const remaining = isSavings || isInvestments ? actual : isIncome ? actual - sub.expected : sub.expected - actual;
+    
+    // Color logic for Savings and Investments:
+    // - Red if actual < expected
+    // - Grey if actual = expected
+    // - Green if actual > expected
+    // For other categories: grey at $0, green if positive, red if negative
+    let remainingColor = 'text-gray-500';
+    if (isSavings || isInvestments) {
+      if (actual < sub.expected) {
+        remainingColor = 'text-red-500';
+      } else if (actual === sub.expected) {
+        remainingColor = 'text-gray-500';
+      } else {
+        remainingColor = 'text-emerald-400';
+      }
+    } else {
+      remainingColor = remaining > 0 ? 'text-emerald-400' : remaining < 0 ? 'text-red-500' : 'text-gray-500';
+    }
 
     return (
         <tr className={`hover:bg-cyan-400/10 ${sub.excludeFromBudget ? 'opacity-50' : ''}`}>
@@ -179,7 +193,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
                 <th className="px-1 py-1" title="Exclude from budget"></th>
                 <th className="px-1 py-1 text-left">Subcategory</th>
                 <th className="px-1 py-1 text-right border-l border-cyan-400/10">Expected</th>
-                <th className="px-1 py-1 text-right border-l border-cyan-400/10">{categoryName === 'Savings' ? 'Saved' : 'Remaining'}</th>
+                <th className="px-1 py-1 text-right border-l border-cyan-400/10">{categoryName === 'Savings' ? 'Saved' : categoryName === 'Investments' ? 'Invested' : 'Remaining'}</th>
                 <th className="px-1 py-1"></th>
               </tr>
             </thead>
