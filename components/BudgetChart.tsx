@@ -10,10 +10,10 @@ interface BudgetChartProps {
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-black/50 backdrop-blur-sm p-3 border border-cyan-400/30 rounded-lg">
-                <p className="font-bold text-white font-display">{label}</p>
-                <p style={{ color: '#8884d8' }}>{`Expected: $${payload[0].value.toFixed(2)}`}</p>
-                <p style={{ color: '#22d3ee' }}>{`Actual: $${payload[1].value.toFixed(2)}`}</p>
+            <div className="bg-white shadow-card p-3 border border-black/5 rounded-xl">
+                <p className="font-bold text-black/87">{label}</p>
+                <p style={{ color: '#9C8E76' }}>{`Expected: $${payload[0].value.toFixed(2)}`}</p>
+                <p style={{ color: '#00754A' }}>{`Actual: $${payload[1].value.toFixed(2)}`}</p>
             </div>
         );
     }
@@ -32,13 +32,13 @@ const BudgetChart: React.FC<BudgetChartProps> = ({ expectedAmounts, actualAmount
     return (
         <ResponsiveContainer width="100%" height={300}>
             <BarChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(34, 211, 238, 0.2)" />
-                <XAxis dataKey="name" stroke="#9ca3af" tick={{ fill: '#d1d5db' }}/>
-                <YAxis stroke="#9ca3af" tick={{ fill: '#d1d5db' }}/>
-                <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(34, 211, 238, 0.1)'}}/>
-                <Legend wrapperStyle={{color: '#d1d5db'}} />
-                <Bar dataKey="Expected" fill="#8884d8" radius={[4, 4, 0, 0]}/>
-                <Bar dataKey="Actual" fill="#22d3ee" radius={[4, 4, 0, 0]}/>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.08)" />
+                <XAxis dataKey="name" stroke="rgba(0,0,0,0.35)" tick={{ fill: 'rgba(0,0,0,0.58)' }}/>
+                <YAxis stroke="rgba(0,0,0,0.35)" tick={{ fill: 'rgba(0,0,0,0.58)' }}/>
+                <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(0,98,65,0.06)'}}/>
+                <Legend wrapperStyle={{color: 'rgba(0,0,0,0.58)'}} />
+                <Bar dataKey="Expected" fill="#9C8E76" radius={[4, 4, 0, 0]}/>
+                <Bar dataKey="Actual" fill="#00754A" radius={[4, 4, 0, 0]}/>
             </BarChart>
         </ResponsiveContainer>
     );

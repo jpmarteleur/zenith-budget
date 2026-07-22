@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FUTURISTIC_GLASS_STYLE } from '../constants';
+import { CARD_STYLE, BTN_GHOST, BTN_PRIMARY } from '../constants';
 import XIcon from './icons/XIcon';
 
 type CreationOption = 'copy' | 'blank' | 'scratch';
@@ -47,9 +47,9 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ isOpen, onClose, onCreate
   const formattedMonth = new Date(selectedMonth + '-02').toLocaleString('default', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
-      <div 
-        className={`${FUTURISTIC_GLASS_STYLE} w-full max-w-md p-4 sm:p-6 rounded-2xl animate-fade-in my-auto`}
+    <div className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
+      <div
+        className={`${CARD_STYLE} w-full max-w-md p-4 sm:p-6 animate-fade-in my-auto`}
         onClick={e => e.stopPropagation()}
       >
         <style>{`
@@ -61,14 +61,14 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ isOpen, onClose, onCreate
         `}</style>
 
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-white">Create a new budget for a month</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <h3 className="text-xl font-bold text-black/87">Create a new budget for a month</h3>
+          <button onClick={onClose} className="text-black/40 hover:text-black/70">
             <XIcon className="w-6 h-6"/>
           </button>
         </div>
 
         <div className="mb-3">
-          <label className="text-xs text-gray-400 block mb-1">Month</label>
+          <label className="text-xs text-black/60 block mb-1">Month</label>
           <input
             type="month"
             value={selectedMonth}
@@ -77,27 +77,27 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ isOpen, onClose, onCreate
               // update default source when selected month changes
               setSourceMonth(getPreviousMonthStr(e.target.value));
             }}
-            className="w-full bg-gray-900/50 border border-cyan-400/30 rounded-md py-1 px-2 text-xs text-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="w-full bg-white border border-black/15 rounded-lg py-1 px-2 text-xs text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40"
           />
-          <p className="text-xs text-gray-500 mt-0.5">Choose any month: past, current, or future.</p>
+          <p className="text-xs text-black/40 mt-0.5">Choose any month: past, current, or future.</p>
         </div>
 
-        <p className="text-gray-400 mb-4">How would you like to set up this month's budget?</p>
+        <p className="text-black/60 mb-4">How would you like to set up this month's budget?</p>
 
         <div className="space-y-4">
           <div 
             onClick={() => setCreationOption('copy')}
-            className={`p-4 border rounded-lg cursor-pointer transition-all ${creationOption === 'copy' ? 'bg-cyan-500/20 border-cyan-400' : 'bg-white/5 border-white/10 hover:border-white/20'}`}
+            className={`p-4 border rounded-lg cursor-pointer transition-all ${creationOption === 'copy' ? 'bg-green-mint border-green-accent' : 'bg-white border-black/10 hover:border-green-accent/50'}`}
           >
-            <h4 className="font-semibold text-white">Copy budget from another month</h4>
-            <p className="text-sm text-gray-400 mt-1">Copy the 'Expected' amounts from a source month.</p>
+            <h4 className="font-semibold text-black/87">Copy budget from another month</h4>
+            <p className="text-sm text-black/60 mt-1">Copy the 'Expected' amounts from a source month.</p>
             {creationOption === 'copy' && (
               <div className="mt-3">
-                <label className="text-xs text-gray-400">Source month</label>
+                <label className="text-xs text-black/60">Source month</label>
                 <select
                   value={sourceMonth}
                   onChange={e => setSourceMonth(e.target.value)}
-                  className="mt-1 w-full bg-gray-900/50 border border-cyan-400/30 rounded-md py-2 px-3 text-sm text-gray-200"
+                  className="mt-1 w-full bg-white border border-black/15 rounded-lg py-2 px-3 text-sm text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40"
                 >
                   {/* default: previous month relative to selectedMonth */}
                   <option value={getPreviousMonthStr(selectedMonth)}>Previous month ({new Date(getPreviousMonthStr(selectedMonth) + '-02').toLocaleString('default',{month:'long', year:'numeric'})})</option>
@@ -110,25 +110,25 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ isOpen, onClose, onCreate
           </div>
           <div 
             onClick={() => setCreationOption('blank')}
-            className={`p-4 border rounded-lg cursor-pointer transition-all ${creationOption === 'blank' ? 'bg-cyan-500/20 border-cyan-400' : 'bg-white/5 border-white/10 hover:border-white/20'}`}
+            className={`p-4 border rounded-lg cursor-pointer transition-all ${creationOption === 'blank' ? 'bg-green-mint border-green-accent' : 'bg-white border-black/10 hover:border-green-accent/50'}`}
           >
-            <h4 className="font-semibold text-white">Start with a blank budget</h4>
-            <p className="text-sm text-gray-400 mt-1">Keep your subcategories, but set all 'Expected' amounts to $0.</p>
+            <h4 className="font-semibold text-black/87">Start with a blank budget</h4>
+            <p className="text-sm text-black/60 mt-1">Keep your subcategories, but set all 'Expected' amounts to $0.</p>
           </div>
           <div 
             onClick={() => setCreationOption('scratch')}
-            className={`p-4 border rounded-lg cursor-pointer transition-all ${creationOption === 'scratch' ? 'bg-cyan-500/20 border-cyan-400' : 'bg-white/5 border-white/10 hover:border-white/20'}`}
+            className={`p-4 border rounded-lg cursor-pointer transition-all ${creationOption === 'scratch' ? 'bg-green-mint border-green-accent' : 'bg-white border-black/10 hover:border-green-accent/50'}`}
           >
-            <h4 className="font-semibold text-white">Start from scratch</h4>
-            <p className="text-sm text-gray-400 mt-1">Start completely fresh with no subcategories.</p>
+            <h4 className="font-semibold text-black/87">Start from scratch</h4>
+            <p className="text-sm text-black/60 mt-1">Start completely fresh with no subcategories.</p>
           </div>
         </div>
 
         <div className="mt-8 flex justify-end space-x-4">
-          <button onClick={onClose} className="py-2 px-4 rounded-md text-gray-300 hover:bg-white/10 transition-colors">
+          <button onClick={onClose} className={BTN_GHOST}>
             Cancel
           </button>
-          <button onClick={handleCreate} className="bg-cyan-600 text-white font-semibold py-2 px-6 rounded-md hover:bg-cyan-500 transition-colors">
+          <button onClick={handleCreate} className={BTN_PRIMARY}>
             Create Budget
           </button>
         </div>

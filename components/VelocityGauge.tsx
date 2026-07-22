@@ -1,5 +1,5 @@
 import React from 'react';
-import { FUTURISTIC_GLASS_STYLE } from '../constants';
+import { CARD_STYLE } from '../constants';
 import type { CategoryName } from '../types';
 
 interface VelocityGaugeProps {
@@ -49,28 +49,28 @@ const VelocityGauge: React.FC<VelocityGaugeProps> = ({ expectedAmounts, actualAm
   const rotation = (clampedVelocity * 90) - 90;
 
   // Determine status
-  let statusColor = "text-cyan-400";
+  let statusColor = "text-green-accent";
   let statusText = "Efficient";
-  let gaugeColor = "#22d3ee";
+  let gaugeColor = "#00754A";
 
   if (velocityIndex > 1.2) {
-    statusColor = "text-red-500";
+    statusColor = "text-danger";
     statusText = "High Burn Rate";
-    gaugeColor = "#ef4444";
+    gaugeColor = "#c82014";
   } else if (velocityIndex > 0.9) {
-    statusColor = "text-yellow-400";
+    statusColor = "text-[#C08A2D]";
     statusText = "On Pace";
-    gaugeColor = "#facc15";
+    gaugeColor = "#C08A2D";
   } else {
-    statusColor = "text-green-400";
+    statusColor = "text-green-accent";
     statusText = "Under Budget";
-    gaugeColor = "#10b981";
+    gaugeColor = "#00754A";
   }
 
   return (
-    <div className={`${FUTURISTIC_GLASS_STYLE} p-4 flex flex-col items-center justify-center min-h-[380px]`}>
-      <h3 className="text-lg font-bold text-white mb-1">Velocity Gauge</h3>
-      <p className="text-xs text-gray-400 mb-4">Spending Burn Rate</p>
+    <div className={`${CARD_STYLE} p-4 flex flex-col items-center justify-center min-h-[380px]`}>
+      <h3 className="text-lg font-bold text-black/87 mb-1">Velocity Gauge</h3>
+      <p className="text-xs text-black/60 mb-4">Spending Burn Rate</p>
 
       <div className="relative w-56 h-28 mb-4">
         {/* Gauge Background Arc */}
@@ -79,7 +79,7 @@ const VelocityGauge: React.FC<VelocityGaugeProps> = ({ expectedAmounts, actualAm
           <path
             d="M 20 90 A 80 80 0 0 1 180 90"
             fill="none"
-            stroke="#374151"
+            stroke="#e0ddd5"
             strokeWidth="16"
             strokeLinecap="round"
           />
@@ -97,17 +97,17 @@ const VelocityGauge: React.FC<VelocityGaugeProps> = ({ expectedAmounts, actualAm
 
         {/* Needle */}
         <div
-          className="absolute bottom-0 left-1/2 w-1 h-20 bg-white origin-bottom transition-transform duration-1000 ease-out"
+          className="absolute bottom-0 left-1/2 w-1 h-20 bg-house-green origin-bottom transition-transform duration-1000 ease-out"
           style={{
             transform: `translateX(-50%) rotate(${rotation}deg)`,
             transformOrigin: 'bottom center'
           }}
         >
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rounded-full shadow-lg"></div>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3 h-3 bg-house-green rounded-full shadow-lg"></div>
         </div>
 
         {/* Center hub */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-6 h-6 bg-gray-800 rounded-full border-2 border-white z-10"></div>
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-6 h-6 bg-house-green rounded-full border-2 border-cream z-10"></div>
       </div>
 
       <div className={`text-3xl font-bold ${statusColor} mb-1`}>
@@ -120,25 +120,25 @@ const VelocityGauge: React.FC<VelocityGaugeProps> = ({ expectedAmounts, actualAm
       {/* Budget Progress */}
       <div className="w-full max-w-[240px] space-y-2">
         <div className="flex justify-between items-center text-xs">
-          <span className="text-gray-400">Budget Used:</span>
-          <span className="text-white font-semibold">{Math.round(budgetProgress * 100)}%</span>
+          <span className="text-black/60">Budget Used:</span>
+          <span className="text-black/80 font-semibold">{Math.round(budgetProgress * 100)}%</span>
         </div>
         <div className="flex justify-between items-center text-xs">
-          <span className="text-gray-400">Spent:</span>
-          <span className="text-white font-semibold">${totalActualSpending.toLocaleString()}</span>
+          <span className="text-black/60">Spent:</span>
+          <span className="text-black/80 font-semibold">${totalActualSpending.toLocaleString()}</span>
         </div>
         <div className="flex justify-between items-center text-xs">
-          <span className="text-gray-400">Budget:</span>
-          <span className="text-white font-semibold">${totalExpectedSpending.toLocaleString()}</span>
+          <span className="text-black/60">Budget:</span>
+          <span className="text-black/80 font-semibold">${totalExpectedSpending.toLocaleString()}</span>
         </div>
 
-        <div className="border-t border-gray-700 my-2"></div>
+        <div className="border-t border-black/10 my-2"></div>
 
         <div className="flex justify-between items-center text-xs">
-          <span className="text-gray-400">Month Progress:</span>
-          <span className="text-white font-semibold">{Math.round(monthProgress * 100)}%</span>
+          <span className="text-black/60">Month Progress:</span>
+          <span className="text-black/80 font-semibold">{Math.round(monthProgress * 100)}%</span>
         </div>
-        <div className="text-xs text-gray-500 text-center mt-1">
+        <div className="text-xs text-black/40 text-center mt-1">
           Day {currentDay} of {daysInMonth} {isCurrentMonth ? '(current)' : ''}
         </div>
       </div>

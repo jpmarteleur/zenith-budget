@@ -10,8 +10,8 @@ interface CategoryPieChartProps {
 const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-black/50 backdrop-blur-sm p-3 border border-cyan-400/30 rounded-lg">
-                <p className="font-bold text-white font-display">{`${payload[0].name}: $${payload[0].value.toFixed(2)} (${(payload[0].percent * 100).toFixed(0)}%)`}</p>
+            <div className="bg-white shadow-card p-3 border border-black/5 rounded-xl">
+                <p className="font-bold text-black/87">{`${payload[0].name}: $${payload[0].value.toFixed(2)} (${(payload[0].percent * 100).toFixed(0)}%)`}</p>
             </div>
         );
     }
@@ -29,7 +29,7 @@ const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ actualAmounts }) =>
         .filter(item => item.value > 0);
     
     if (data.length === 0) {
-        return <div className="flex items-center justify-center h-[300px] text-gray-500">No spending data to display.</div>
+        return <div className="flex items-center justify-center h-[300px] text-black/40">No spending data to display.</div>
     }
 
     return (
@@ -41,7 +41,7 @@ const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ actualAmounts }) =>
                     cy="50%"
                     labelLine={false}
                     outerRadius={110}
-                    fill="#8884d8"
+                    fill="#00754A"
                     dataKey="value"
                     nameKey="name"
                 >
@@ -50,7 +50,7 @@ const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ actualAmounts }) =>
                     ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
-                <Legend wrapperStyle={{color: '#d1d5db'}}/>
+                <Legend wrapperStyle={{color: 'rgba(0,0,0,0.58)'}}/>
             </PieChart>
         </ResponsiveContainer>
     );

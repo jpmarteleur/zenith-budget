@@ -5,7 +5,7 @@ import CategoryCard from '../components/CategoryCard';
 import TransactionForm from '../components/TransactionForm';
 import TransactionTable from '../components/TransactionTable';
 import { CATEGORY_NAMES } from '../types';
-import { FUTURISTIC_GLASS_STYLE } from '../constants';
+import { CARD_STYLE, BTN_PRIMARY } from '../constants';
 import BudgetSummary from '../components/BudgetSummary';
 import PlusIcon from '../components/icons/PlusIcon';
 
@@ -40,7 +40,7 @@ const BudgetPage: React.FC<BudgetPageProps> = (props) => {
           type="button"
           onClick={() => setIsFormVisible(true)}
           aria-label="Log Transaction"
-          className="fixed bottom-6 right-4 md:bottom-8 md:right-8 bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg shadow-cyan-900/50 ring-2 ring-cyan-300/30 backdrop-blur-sm z-50"
+          className="fixed bottom-6 right-4 md:bottom-8 md:right-8 bg-green-accent hover:bg-sb-green text-white w-14 h-14 rounded-full flex items-center justify-center shadow-frap transition-all duration-200 active:scale-95 z-50"
         >
           <PlusIcon className="w-6 h-6" />
         </button>
@@ -53,12 +53,12 @@ const BudgetPage: React.FC<BudgetPageProps> = (props) => {
       <BudgetSummary expectedAmounts={expectedAmounts} actualAmounts={actualAmounts} />
 
       {transactions.length === 0 && (
-        <div className={`${FUTURISTIC_GLASS_STYLE} p-6 text-center`}>
-          <h4 className="text-lg font-semibold text-white">Your budget is ready!</h4>
-          <p className="text-gray-400 mt-1 mb-4">The next step is to log your income and expenses.</p>
+        <div className={`${CARD_STYLE} p-6 text-center`}>
+          <h4 className="text-lg font-semibold text-black/87">Your budget is ready!</h4>
+          <p className="text-black/60 mt-1 mb-4">The next step is to log your income and expenses.</p>
           <button
             onClick={() => setIsFormVisible(true)}
-            className="bg-cyan-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-cyan-500 transition-colors flex items-center justify-center space-x-2 mx-auto"
+            className={`${BTN_PRIMARY} space-x-2 mx-auto`}
           >
             <PlusIcon className="w-5 h-5" />
             <span>Log Your First Transaction</span>
@@ -67,7 +67,7 @@ const BudgetPage: React.FC<BudgetPageProps> = (props) => {
       )}
 
       <div>
-        <h3 className="text-xl font-bold text-white mb-4">Detailed Budget</h3>
+        <h3 className="text-xl font-bold text-black/87 mb-4">Detailed Budget</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {CATEGORY_NAMES.map((catName) => (
             <CategoryCard

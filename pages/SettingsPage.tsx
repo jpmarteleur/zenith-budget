@@ -1,25 +1,25 @@
 import React from 'react';
 import { useSettings, CURRENCIES, CurrencyCode } from '../contexts/SettingsContext';
-import { FUTURISTIC_GLASS_STYLE } from '../constants';
+import { CARD_STYLE, INPUT_STYLE } from '../constants';
 
 const SettingsPage: React.FC = () => {
   const { currency, setCurrency } = useSettings();
 
   return (
     <div className="space-y-6">
-      <div className={`${FUTURISTIC_GLASS_STYLE} p-6`}>
-        <h2 className="text-xl font-bold text-white mb-4">General Settings</h2>
+      <div className={`${CARD_STYLE} p-6`}>
+        <h2 className="text-xl font-bold text-black/87 mb-4">General Settings</h2>
         
         <div className="space-y-4">
           <div>
-            <label htmlFor="currency-select" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="currency-select" className="block text-sm font-medium text-black/70 mb-2">
               Currency
             </label>
             <select
               id="currency-select"
               value={currency.code}
               onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
-              className="w-full md:w-64 bg-gray-800/50 border border-gray-600 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              className={`${INPUT_STYLE} md:w-64`}
             >
               {CURRENCIES.map((c) => (
                 <option key={c.code} value={c.code}>
@@ -27,7 +27,7 @@ const SettingsPage: React.FC = () => {
                 </option>
               ))}
             </select>
-            <p className="mt-2 text-sm text-gray-400">
+            <p className="mt-2 text-sm text-black/60">
               Select the currency you want to use for your budget.
             </p>
           </div>

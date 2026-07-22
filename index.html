@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <!-- Removed default Vite favicon reference to eliminate 404 -->
@@ -7,18 +7,44 @@
     <title>Zenith Budget</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
     tailwind.config = {
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Exo 2', 'sans-serif'],
-            display: ['Orbitron', 'sans-serif'],
+            sans: ['Inter', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+            serif: ['Lora', 'Iowan Old Style', 'Georgia', 'serif'],
+          },
+          colors: {
+            // Warm-neutral canvas
+            cream: '#f2f0eb',
+            ceramic: '#edebe9',
+            // Four-tier green brand system
+            'sb-green': '#006241',
+            'green-accent': '#00754A',
+            'house-green': '#1E3932',
+            'green-uplift': '#2b5148',
+            'green-mint': '#d4e9e2',
+            // Gold — reserved for milestone moments only
+            gold: '#cba258',
+            'gold-light': '#dfc49d',
+            // Semantic
+            danger: '#c82014',
+            // Warm, distinct category hues
+            'cat-income': '#00754A',
+            'cat-expenses': '#C0563B',
+            'cat-bills': '#C08A2D',
+            'cat-savings': '#2F7E92',
+            'cat-investments': '#77852E',
+            'cat-debts': '#9E3B32',
           },
           boxShadow: {
-            'glow-cyan': '0 0 5px rgba(34, 211, 238, 0.6), 0 0 10px rgba(34, 211, 238, 0.4)',
+            // Whisper-soft, layered — never one heavy drop shadow
+            card: '0 0 0.5px 0 rgba(0,0,0,0.14), 0 1px 1px 0 rgba(0,0,0,0.24)',
+            nav: '0 1px 3px rgba(0,0,0,0.1), 0 2px 2px rgba(0,0,0,0.06), 0 0 2px rgba(0,0,0,0.07)',
+            frap: '0 0 6px rgba(0,0,0,0.24), 0 8px 12px rgba(0,0,0,0.14)',
           },
         },
       },
@@ -26,34 +52,20 @@
     </script>
   <style>
     :root {
-      --color-bg-dark: #050a14;
+      --color-canvas: #f2f0eb;
     }
     body {
-      background-color: var(--color-bg-dark);
+      background-color: var(--color-canvas);
+      color: rgba(0, 0, 0, 0.87);
+      letter-spacing: -0.01em;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-    }
-    .futuristic-bg {
-      position: fixed;
-      inset: 0;
-      background-color: var(--color-bg-dark);
-      background-image: 
-        linear-gradient(rgba(34, 211, 238, 0.07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(34, 211, 238, 0.07) 1px, transparent 1px);
-      background-size: 30px 30px;
-      animation: bg-pan 20s linear infinite;
-      z-index: 0;
-    }
-
-    @keyframes bg-pan {
-      from { background-position: 0 0; }
-      to { background-position: 30px 30px; }
     }
   </style>
     <!-- Removed importmap: letting Vite handle module resolution locally -->
     <!-- Removed unused /index.css link to avoid 404 noise -->
 </head>
-  <body class="text-gray-200 font-sans">
+  <body class="font-sans">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

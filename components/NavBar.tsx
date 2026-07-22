@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Page } from '../MainApp';
-import { FUTURISTIC_GLASS_STYLE } from '../constants';
+// NavBar uses the nav-specific shadow token directly (see index.html boxShadow.nav)
 import NewMonthModal from './NewMonthModal';
 import ConfirmationModal from './ConfirmationModal';
 import ChevronDownIcon from './icons/ChevronDownIcon';
@@ -29,10 +29,10 @@ const NavButton: React.FC<{
     return (
         <button
             onClick={() => onClick(pageName)}
-            className={`px-4 py-2 rounded-md text-sm font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none active:scale-95 ${
                 isActive
-                    ? 'bg-cyan-500 text-black shadow-glow-cyan'
-                    : 'text-gray-300 hover:bg-cyan-400/10 hover:text-cyan-300'
+                    ? 'bg-green-accent text-white shadow-card'
+                    : 'text-black/60 hover:bg-green-mint hover:text-sb-green'
             }`}
         >
             {pageName}
@@ -87,7 +87,7 @@ const NavBar: React.FC<NavBarProps> = ({ activePage, setActivePage, selectedMont
 
   return (
     <>
-      <nav className={`${FUTURISTIC_GLASS_STYLE} p-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2`}>
+      <nav className="bg-white rounded-xl shadow-nav p-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div className="flex items-center space-x-2">
           {pages.map((page) => (
             <NavButton
@@ -105,21 +105,21 @@ const NavBar: React.FC<NavBarProps> = ({ activePage, setActivePage, selectedMont
                         <select 
                             value={selectedMonth} 
                             onChange={handleMonthChange}
-                            className="bg-gray-900/50 border border-cyan-400/30 rounded-md py-2 pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 appearance-none"
+                            className="bg-white border border-black/15 rounded-lg py-2 pl-3 pr-8 text-sm text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40 focus:border-green-accent appearance-none"
                         >
                             {availableMonths.map(month => (
                                 <option key={month} value={month}>{formatMonth(month)}</option>
                             ))}
                             {showCreateNew && <option value="new">Create a new budget for a month</option>}
                         </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-black/40">
                             <ChevronDownIcon className="w-4 h-4" />
                         </div>
                     </div>
                     {availableMonths.length > 1 && (
                         <button
                             onClick={() => setIsConfirmOpen(true)}
-                            className="p-2 text-gray-400 hover:text-fuchsia-400 transition-colors rounded-md hover:bg-white/10"
+                            className="p-2 text-black/50 hover:text-danger transition-colors rounded-lg hover:bg-black/5"
                             aria-label="Delete selected month"
                         >
                             <TrashIcon className="w-5 h-5" />
@@ -127,11 +127,11 @@ const NavBar: React.FC<NavBarProps> = ({ activePage, setActivePage, selectedMont
                     )}
                 </div>
             )}
-            <div className="flex items-center space-x-2 border-l border-cyan-400/20 pl-2 sm:pl-4">
-                <span className="text-sm text-gray-400 hidden sm:block truncate">{currentUser?.email}</span>
+            <div className="flex items-center space-x-2 border-l border-black/10 pl-2 sm:pl-4">
+                <span className="text-sm text-black/50 hidden sm:block truncate">{currentUser?.email}</span>
                 <button
                     onClick={logout}
-                    className="p-2 text-gray-400 hover:text-fuchsia-400 transition-colors rounded-md hover:bg-white/10"
+                    className="p-2 text-black/50 hover:text-danger transition-colors rounded-lg hover:bg-black/5"
                     aria-label="Logout"
                     title="Sign Out"
                 >

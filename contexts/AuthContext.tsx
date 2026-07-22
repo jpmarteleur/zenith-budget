@@ -130,7 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={authValue}>
       {loading ? (
-        <div style={{padding:'2rem', color:'#22d3ee', fontFamily:'sans-serif', textAlign:'center'}}>
+        <div style={{padding:'2rem', color:'#00754A', fontFamily:'Inter, sans-serif', textAlign:'center'}}>
           <div style={{marginBottom:'0.75rem'}}>Initializing session...</div>
           <div style={{fontSize:'0.75rem', opacity:0.7}}>If this persists, check Supabase redirect URLs and network tab.</div>
         </div>

@@ -42,14 +42,16 @@ const MainApp: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen text-gray-200 font-sans">
-      <div className="futuristic-bg"></div>
-      <div className="relative z-10 min-h-screen flex flex-col items-center p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen">
+      {/* House Green header band — the espresso-dark bookend */}
+      <header className="bg-house-green">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
+          <h1 className="font-serif text-4xl sm:text-5xl font-semibold text-white">Zenith Budget</h1>
+          <p className="text-white/70 mt-2 text-sm tracking-wide">Manage Your Assets</p>
+        </div>
+      </header>
+      <div className="flex flex-col items-center p-4 sm:p-6 lg:p-8">
         <div className="w-full max-w-7xl mx-auto">
-          <header className="mb-6 text-center">
-            <h1 className="text-4xl sm:text-5xl font-bold text-white tracking-wider uppercase font-display" style={{ textShadow: '0 0 8px rgba(34, 211, 238, 0.7)' }}>Zenith Budget</h1>
-            <p className="text-cyan-400 mt-2 text-sm tracking-widest uppercase">Manage Your Assets</p>
-          </header>
           <NavBar
             activePage={activePage}
             setActivePage={setActivePage}

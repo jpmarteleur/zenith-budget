@@ -9,7 +9,7 @@ const DashboardPage: React.FC<DashboardPageProps> = (props) => {
   const { isLoaded, transactions, selectedMonth, expectedAmounts, actualAmounts } = props;
 
   if (!isLoaded) {
-    return <div className="text-white">Loading...</div>;
+    return <div className="text-black/60">Loading...</div>;
   }
 
   return (

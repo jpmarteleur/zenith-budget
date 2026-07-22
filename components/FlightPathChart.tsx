@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
-import { FUTURISTIC_GLASS_STYLE } from '../constants';
+import { CARD_STYLE } from '../constants';
 import type { CategoryName } from '../types';
 
 interface Transaction {
@@ -55,35 +55,36 @@ const FlightPathChart: React.FC<FlightPathChartProps> = ({ transactions, selecte
   }, [transactions]);
 
   return (
-    <div className={`${FUTURISTIC_GLASS_STYLE} p-4`}>
-      <h3 className="text-lg font-bold text-white mb-1">Flight Path</h3>
-      <p className="text-xs text-gray-400 mb-2">Daily Income vs. Spending for {selectedMonth}</p>
+    <div className={`${CARD_STYLE} p-4`}>
+      <h3 className="text-lg font-bold text-black/87 mb-1">Flight Path</h3>
+      <p className="text-xs text-black/60 mb-2">Daily Income vs. Spending for {selectedMonth}</p>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart
           data={chartData}
           margin={{ top: 35, right: 10, left: 0, bottom: 20 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.08)" />
           <XAxis
             dataKey="day"
-            stroke="#9CA3AF"
+            stroke="rgba(0,0,0,0.35)"
             tick={{ fontSize: 11 }}
-            label={{ value: 'Day of Month', position: 'insideBottom', offset: -10, fill: '#9CA3AF', fontSize: 10 }}
+            label={{ value: 'Day of Month', position: 'insideBottom', offset: -10, fill: 'rgba(0,0,0,0.58)', fontSize: 10 }}
           />
           <YAxis
-            stroke="#9CA3AF"
+            stroke="rgba(0,0,0,0.35)"
             tick={{ fontSize: 11 }}
             width={55}
             tickFormatter={(value) => `$${value}`}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: '#1F2937',
-              borderColor: '#374151',
-              color: '#F3F4F6',
+              backgroundColor: '#ffffff',
+              borderColor: 'rgba(0,0,0,0.1)',
+              borderRadius: 12,
+              color: 'rgba(0,0,0,0.87)',
               fontSize: 11
             }}
-            itemStyle={{ color: '#F3F4F6' }}
+            itemStyle={{ color: 'rgba(0,0,0,0.87)' }}
             formatter={(value: number) => `$${value.toLocaleString()}`}
           />
           <Legend
@@ -95,7 +96,7 @@ const FlightPathChart: React.FC<FlightPathChartProps> = ({ transactions, selecte
           <Line
             type="monotone"
             dataKey="Income"
-            stroke="#10B981"
+            stroke="#00754A"
             strokeWidth={2}
             dot={{ r: 3 }}
             activeDot={{ r: 5 }}
@@ -103,7 +104,7 @@ const FlightPathChart: React.FC<FlightPathChartProps> = ({ transactions, selecte
           <Line
             type="monotone"
             dataKey="Spending"
-            stroke="#EF4444"
+            stroke="#c82014"
             strokeWidth={2}
             dot={{ r: 3 }}
             activeDot={{ r: 5 }}

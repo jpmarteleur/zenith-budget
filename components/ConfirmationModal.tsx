@@ -1,5 +1,5 @@
 import React from 'react';
-import { FUTURISTIC_GLASS_STYLE } from '../constants';
+import { CARD_STYLE, BTN_GHOST, BTN_DANGER } from '../constants';
 import XIcon from './icons/XIcon';
 
 interface ConfirmationModalProps {
@@ -14,9 +14,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div 
-        className={`${FUTURISTIC_GLASS_STYLE} w-full max-w-md p-6 rounded-2xl animate-fade-in`}
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className={`${CARD_STYLE} w-full max-w-md p-6 animate-fade-in`}
         onClick={e => e.stopPropagation()}
       >
         <style>{`
@@ -28,21 +28,21 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, 
         `}</style>
 
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-white">{title}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <h3 className="text-xl font-bold text-black/87">{title}</h3>
+          <button onClick={onClose} className="text-black/40 hover:text-black/70">
             <XIcon className="w-6 h-6"/>
           </button>
         </div>
 
-        <div className="text-gray-300 mb-6">
+        <div className="text-black/70 mb-6">
           {children}
         </div>
 
         <div className="mt-8 flex justify-end space-x-4">
-          <button onClick={onClose} className="py-2 px-4 rounded-md text-gray-300 hover:bg-white/10 transition-colors">
+          <button onClick={onClose} className={BTN_GHOST}>
             Cancel
           </button>
-          <button onClick={onConfirm} className="bg-fuchsia-600 text-white font-semibold py-2 px-6 rounded-md hover:bg-fuchsia-500 transition-colors">
+          <button onClick={onConfirm} className={BTN_DANGER}>
             Confirm
           </button>
         </div>

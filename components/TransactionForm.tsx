@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import type { CategoryName, Transaction, Subcategories } from '../types';
 import { CATEGORY_NAMES } from '../types';
-import { FUTURISTIC_GLASS_STYLE } from '../constants';
+import { CARD_STYLE, BTN_PRIMARY, BTN_OUTLINE } from '../constants';
 import PlusIcon from './icons/PlusIcon';
 import XIcon from './icons/XIcon';
 import { parseTransactionText } from '../services/geminiService';
@@ -199,9 +199,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
   };
 
   return (
-    <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-        <div 
-            className={`${FUTURISTIC_GLASS_STYLE} w-full max-w-2xl p-6 rounded-2xl animate-fade-in`}
+    <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+        <div
+            className={`${CARD_STYLE} w-full max-w-2xl p-6 animate-fade-in`}
             onClick={e => e.stopPropagation()}
         >
             <style>{`
@@ -213,18 +213,18 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
             `}</style>
 
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-white">Log Transaction</h3>
-                <button onClick={onClose} className="text-gray-400 hover:text-white">
+                <h3 className="text-xl font-bold text-black/87">Log Transaction</h3>
+                <button onClick={onClose} className="text-black/40 hover:text-black/70">
                     <XIcon className="w-6 h-6"/>
                 </button>
             </div>
             
             {/* TABS */}
-            <div className="flex border-b border-cyan-400/20 mb-6">
-                 <button onClick={() => setActiveTab('ai')} className={`py-2 px-4 text-sm font-semibold transition-colors ${activeTab === 'ai' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-white'}`}>
+            <div className="flex border-b border-black/10 mb-6">
+                 <button onClick={() => setActiveTab('ai')} className={`py-2 px-4 text-sm font-semibold transition-colors ${activeTab === 'ai' ? 'text-green-accent border-b-2 border-green-accent' : 'text-black/50 hover:text-black/80'}`}>
                     AI Assist
                 </button>
-                <button onClick={() => setActiveTab('manual')} className={`py-2 px-4 text-sm font-semibold transition-colors ${activeTab === 'manual' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-white'}`}>
+                <button onClick={() => setActiveTab('manual')} className={`py-2 px-4 text-sm font-semibold transition-colors ${activeTab === 'manual' ? 'text-green-accent border-b-2 border-green-accent' : 'text-black/50 hover:text-black/80'}`}>
                     Manual Entry
                 </button>
             </div>
@@ -233,25 +233,25 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
             {activeTab === 'manual' && (
                  <form onSubmit={handleManualSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                     <div className="flex flex-col">
-                        <label htmlFor="date" className="text-sm font-medium text-gray-400 mb-1">Date</label>
+                        <label htmlFor="date" className="text-sm font-medium text-black/60 mb-1">Date</label>
                         <input type="date" id="date" value={manualDate} onChange={e => setManualDate(e.target.value)} required
                                 min={monthMin} max={monthMax}
-                                className="bg-gray-900/50 border border-cyan-400/30 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+                                className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40" />
                     </div>
                     <div className="flex flex-col">
-                        <label htmlFor="amount" className="text-sm font-medium text-gray-400 mb-1">Amount</label>
+                        <label htmlFor="amount" className="text-sm font-medium text-black/60 mb-1">Amount</label>
                         <input type="number" id="amount" value={manualAmount} onChange={e => setManualAmount(e.target.value)} required step="0.01" placeholder="0.00"
-                                className="bg-gray-900/50 border border-cyan-400/30 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+                                className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40" />
                     </div>
                     <div className="flex flex-col">
-                        <label htmlFor="category" className="text-sm font-medium text-gray-400 mb-1">Category</label>
+                        <label htmlFor="category" className="text-sm font-medium text-black/60 mb-1">Category</label>
                         <select id="category" value={manualCategory} onChange={e => {setManualCategory(e.target.value as CategoryName); setManualSubcategory('')}} required
-                                className="bg-gray-900/50 border border-cyan-400/30 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-cyan-500 appearance-none">
+                                className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40 appearance-none">
                             {CATEGORY_NAMES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                         </select>
                     </div>
                     <div className="flex flex-col">
-                        <label htmlFor="subcategory" className="text-sm font-medium text-gray-400 mb-1">Subcategory</label>
+                        <label htmlFor="subcategory" className="text-sm font-medium text-black/60 mb-1">Subcategory</label>
                          <input
                             id="subcategory"
                             type="text"
@@ -259,18 +259,18 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
                             onChange={e => setManualSubcategory(e.target.value)}
                             required
                             list="subcategory-list-manual"
-                            className="bg-gray-900/50 border border-cyan-400/30 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                            className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40"
                         />
                         <datalist id="subcategory-list-manual">
                             {subcategories[manualCategory]?.map(sub => <option key={sub.id} value={sub.name} />)}
                         </datalist>
                     </div>
                     <div className="flex flex-col md:col-span-2">
-                        <label htmlFor="note" className="text-sm font-medium text-gray-400 mb-1">Note</label>
+                        <label htmlFor="note" className="text-sm font-medium text-black/60 mb-1">Note</label>
                         <input type="text" id="note" value={manualNote} onChange={e => setManualNote(e.target.value)} placeholder="(Optional)"
-                                className="bg-gray-900/50 border border-cyan-400/30 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+                                className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40" />
                     </div>
-                    <button type="submit" className="md:col-span-2 bg-cyan-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-cyan-500 transition-colors flex items-center justify-center space-x-2">
+                    <button type="submit" className={`${BTN_PRIMARY} md:col-span-2 space-x-2`}>
                         <PlusIcon className="w-5 h-5" />
                         <span>Add Transaction</span>
                     </button>
@@ -281,7 +281,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
                 <div>
                     {!parsedData ? (
                         <>
-                            <p className="text-gray-400 mb-4 text-sm">e.g., "$10 Chipotle", "$1500 rent", or "paycheck for $2500"</p>
+                            <p className="text-black/60 mb-4 text-sm">e.g., "$10 Chipotle", "$1500 rent", or "paycheck for $2500"</p>
                             <div className="flex space-x-2">
                                 <input
                                 type="text"
@@ -289,46 +289,46 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
                                 onChange={(e) => setInputText(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleParse()}
                                 placeholder="Enter transaction..."
-                                className="flex-grow bg-gray-900/50 border border-cyan-400/30 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                className="flex-grow bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40"
                                 disabled={isLoading}
                                 />
                                 <button
                                 onClick={handleParse}
                                 disabled={isLoading || !inputText.trim()}
-                                className="bg-cyan-600 text-white font-semibold py-2 px-6 rounded-md hover:bg-cyan-500 transition-colors disabled:bg-cyan-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className={BTN_PRIMARY}
                                 >
                                 {isLoading ? 'Parsing...' : 'Parse'}
                                 </button>
                             </div>
-                            {error && <p className="text-rose-400 mt-4 text-center">{error}</p>}
+                            {error && <p className="text-danger mt-4 text-center">{error}</p>}
                         </>
                     ) : (
                         <form onSubmit={handleAiSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                             <div className="flex flex-col">
-                                <label className="text-sm font-medium text-gray-400 mb-1">Date</label>
-                                <input type="date" name="date" value={parsedData.date} onChange={handleParsedDataChange} required min={monthMin} max={monthMax} className="bg-gray-900/50 border border-cyan-400/30 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+                                <label className="text-sm font-medium text-black/60 mb-1">Date</label>
+                                <input type="date" name="date" value={parsedData.date} onChange={handleParsedDataChange} required min={monthMin} max={monthMax} className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40" />
                             </div>
                             <div className="flex flex-col">
-                                <label className="text-sm font-medium text-gray-400 mb-1">Amount</label>
-                                <input type="number" name="amount" value={parsedData.amount} onChange={handleParsedDataChange} required step="0.01" placeholder="0.00" className="bg-gray-900/50 border border-cyan-400/30 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+                                <label className="text-sm font-medium text-black/60 mb-1">Amount</label>
+                                <input type="number" name="amount" value={parsedData.amount} onChange={handleParsedDataChange} required step="0.01" placeholder="0.00" className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40" />
                             </div>
                             <div className="flex flex-col">
-                                <label className="text-sm font-medium text-gray-400 mb-1">Category</label>
-                                <select name="category" value={parsedData.category} onChange={handleParsedDataChange} required className="bg-gray-900/50 border border-cyan-400/30 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-cyan-500 appearance-none">
+                                <label className="text-sm font-medium text-black/60 mb-1">Category</label>
+                                <select name="category" value={parsedData.category} onChange={handleParsedDataChange} required className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40 appearance-none">
                                     {CATEGORY_NAMES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                 </select>
                             </div>
                             <div className="flex flex-col">
-                                <label htmlFor="subcategory-ai" className="text-sm font-medium text-gray-400 mb-1">Subcategory</label>
+                                <label htmlFor="subcategory-ai" className="text-sm font-medium text-black/60 mb-1">Subcategory</label>
                                 {isCreatingNewSub ? (
-                                    <div className="space-y-2 p-2 border border-cyan-400/30 rounded-md bg-gray-900/50">
+                                    <div className="space-y-2 p-2 border border-black/15 rounded-lg bg-cream">
                                         <input
                                             type="text"
                                             placeholder="New Subcategory Name"
                                             value={newSubName}
                                             onChange={(e) => setNewSubName(e.target.value)}
                                             required
-                                            className="w-full bg-gray-800/80 border border-cyan-400/30 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                            className="w-full bg-white border border-black/15 rounded-lg py-1.5 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40"
                                         />
                                         <input
                                             type="number"
@@ -336,9 +336,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
                                             value={newSubExpected}
                                             onChange={(e) => setNewSubExpected(e.target.value)}
                                             step="0.01"
-                                            className="w-full bg-gray-800/80 border border-cyan-400/30 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                            className="w-full bg-white border border-black/15 rounded-lg py-1.5 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40"
                                         />
-                                        <button type="button" onClick={() => { setIsCreatingNewSub(false); setError(null); }} className="text-xs text-cyan-400 hover:text-cyan-300">
+                                        <button type="button" onClick={() => { setIsCreatingNewSub(false); setError(null); }} className="text-xs text-green-accent hover:text-sb-green">
                                             Cancel
                                         </button>
                                     </div>
@@ -357,26 +357,26 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
                                             }
                                         }}
                                         required
-                                        className="bg-gray-900/50 border border-cyan-400/30 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-cyan-500 appearance-none"
+                                        className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40 appearance-none"
                                     >
                                         <option value="" disabled>Select or create...</option>
                                         {subcategories[parsedData.category]?.map(sub => (
                                             <option key={sub.id} value={sub.name}>{sub.name}</option>
                                         ))}
-                                        <option value="__CREATE_NEW__" className="italic text-cyan-400 font-semibold bg-gray-800">-- Create New --</option>
+                                        <option value="__CREATE_NEW__" className="italic text-green-accent font-semibold bg-white">-- Create New --</option>
                                     </select>
                                 )}
                             </div>
                             <div className="flex flex-col md:col-span-2">
-                                <label className="text-sm font-medium text-gray-400 mb-1">Note</label>
-                                <input type="text" name="note" value={parsedData.note} onChange={handleParsedDataChange} placeholder="(Optional)" className="bg-gray-900/50 border border-cyan-400/30 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+                                <label className="text-sm font-medium text-black/60 mb-1">Note</label>
+                                <input type="text" name="note" value={parsedData.note} onChange={handleParsedDataChange} placeholder="(Optional)" className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40" />
                             </div>
-                            {error && <p className="text-rose-400 text-sm text-center md:col-span-2">{error}</p>}
+                            {error && <p className="text-danger text-sm text-center md:col-span-2">{error}</p>}
                             <div className="md:col-span-2 grid grid-cols-2 gap-4 mt-4">
-                                <button type="button" onClick={resetAiTab} className="bg-gray-600/50 text-gray-300 font-semibold py-2 px-4 rounded-md hover:bg-gray-600/80 transition-colors">
+                                <button type="button" onClick={resetAiTab} className={BTN_OUTLINE}>
                                     Parse Another
                                 </button>
-                                <button type="submit" className="bg-cyan-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-cyan-500 transition-colors flex items-center justify-center space-x-2">
+                                <button type="submit" className={`${BTN_PRIMARY} space-x-2`}>
                                     <PlusIcon className="w-5 h-5" />
                                     <span>Add Transaction</span>
                                 </button>

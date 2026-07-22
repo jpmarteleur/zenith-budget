@@ -1,12 +1,25 @@
 import type { CategoryName } from './types';
 
-export const CATEGORY_COLORS: Record<CategoryName, { base: string, text: string, bg: string, hex: string }> = {
-  Income:   { base: 'cyan-400',    text: 'text-cyan-400',    bg: 'bg-cyan-500/10',    hex: '#22d3ee' },
-  Expenses: { base: 'fuchsia-500', text: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10', hex: '#d946ef' },
-  Bills:    { base: 'sky-500',     text: 'text-sky-400',     bg: 'bg-sky-500/10',     hex: '#0ea5e9' },
-  Savings:  { base: 'indigo-500',  text: 'text-indigo-400',  bg: 'bg-indigo-500/10',  hex: '#6366f1' },
-  Investments: { base: 'emerald-500', text: 'text-emerald-400', bg: 'bg-emerald-500/10', hex: '#10b981' },
-  Debts:    { base: 'amber-400',   text: 'text-amber-300',   bg: 'bg-amber-500/10',   hex: '#f59e0b' },
+// Warm, distinct café hues per budget category. `hex` is the single source of truth —
+// consumers apply it via inline style so no fragile runtime-built Tailwind class is relied on.
+export const CATEGORY_COLORS: Record<CategoryName, { hex: string }> = {
+  Income:      { hex: '#00754A' }, // green
+  Expenses:    { hex: '#C0563B' }, // terracotta
+  Bills:       { hex: '#C08A2D' }, // ochre
+  Savings:     { hex: '#2F7E92' }, // teal-blue
+  Investments: { hex: '#77852E' }, // olive
+  Debts:       { hex: '#9E3B32' }, // brick
 };
 
-export const FUTURISTIC_GLASS_STYLE = "bg-black/30 backdrop-blur-md border border-cyan-400/30 rounded-lg shadow-lg shadow-cyan-500/10";
+// Whisper-soft white content card (Starbucks-café system) — replaces the old dark glass panel.
+export const CARD_STYLE = "bg-white rounded-xl shadow-card";
+
+// Pill buttons — full-pill radius + scale(0.95) active press (the signature micro-interaction).
+const BTN_BASE = "inline-flex items-center justify-center font-semibold rounded-full transition-all duration-200 active:scale-95 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed";
+export const BTN_PRIMARY = `${BTN_BASE} bg-green-accent text-white hover:bg-sb-green py-2 px-5`;
+export const BTN_OUTLINE = `${BTN_BASE} bg-transparent text-green-accent border border-green-accent hover:bg-green-mint py-2 px-5`;
+export const BTN_GHOST = `${BTN_BASE} text-black/60 hover:bg-black/5 py-2 px-5`;
+export const BTN_DANGER = `${BTN_BASE} bg-danger text-white hover:opacity-90 py-2 px-5`;
+
+// White form control with a green focus ring.
+export const INPUT_STYLE = "w-full bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 placeholder-black/40 focus:outline-none focus:ring-2 focus:ring-green-accent/40 focus:border-green-accent transition-colors";
