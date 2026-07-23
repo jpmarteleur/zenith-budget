@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Transaction, Subcategories } from '../types';
-import { CATEGORY_COLORS, BTN_PRIMARY } from '../constants';
+import { getCategoryColor, BTN_PRIMARY } from '../constants';
 import TrashIcon from './icons/TrashIcon';
 import PencilIcon from './icons/PencilIcon';
 import CheckIcon from './icons/CheckIcon';
@@ -70,7 +70,7 @@ const TransactionRow: React.FC<{
         <tr className="border-b border-black/5 hover:bg-green-mint/40 transition-colors">
             <td className="p-3">{transaction.date}</td>
             <td className="p-3">
-              <span className="px-2 py-1 text-xs font-semibold rounded-full" style={{ backgroundColor: `${CATEGORY_COLORS[transaction.category].hex}1A`, color: CATEGORY_COLORS[transaction.category].hex }}>
+              <span className="px-2 py-1 text-xs font-semibold rounded-full" style={{ backgroundColor: `${getCategoryColor(transaction.category).hex}1A`, color: getCategoryColor(transaction.category).hex }}>
                 {transaction.category}
               </span>
             </td>

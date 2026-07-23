@@ -1,6 +1,7 @@
 import React from 'react';
 import { CARD_STYLE } from '../constants';
 import type { CategoryName } from '../types';
+import { CATEGORY_NAMES } from '../types';
 
 interface VelocityGaugeProps {
   expectedAmounts: Record<CategoryName, number>;
@@ -9,19 +10,11 @@ interface VelocityGaugeProps {
 }
 
 const VelocityGauge: React.FC<VelocityGaugeProps> = ({ expectedAmounts, actualAmounts, selectedMonth }) => {
-  // Calculate total expected spending (exclude Income)
-  const totalExpectedSpending =
-    expectedAmounts.Expenses +
-    expectedAmounts.Bills +
-    expectedAmounts.Debts +
-    expectedAmounts.Savings;
-
-  // Calculate total actual spending (exclude Income)
-  const totalActualSpending =
-    (actualAmounts.Expenses || 0) +
-    (actualAmounts.Bills || 0) +
-    (actualAmounts.Debts || 0) +
-    (actualAmounts.Savings || 0);
+  // Total spending = every category except Income. Deriving from CATEGORY_NAMES
+  // (rather than hard-listing categories) ensures no category is ever dropped.
+  const spendingCategories = CATEGORY_NAMES.filter(c => c !== 'Income');
+  const totalExpectedSpending = spendingCategories.reduce((sum, c) => sum + (expectedAmounts[c] || 0), 0);
+  const totalActualSpending = spendingCategories.reduce((sum, c) => sum + (actualAmounts[c] || 0), 0);
 
   // Calculate month progress
   const now = new Date();

@@ -1,5 +1,6 @@
 
 import type { CategoryName, Subcategories } from '../types';
+import { CATEGORY_NAMES } from '../types';
 
 export const parseTransactionText = async (text: string, subcategories: Subcategories): Promise<{
     amount: number;
@@ -31,7 +32,8 @@ export const parseTransactionText = async (text: string, subcategories: Subcateg
             typeof parsedData.amount === 'number' &&
             typeof parsedData.category === 'string' &&
             typeof parsedData.subcategory === 'string' &&
-            typeof parsedData.note === 'string'
+            typeof parsedData.note === 'string' &&
+            (CATEGORY_NAMES as readonly string[]).includes(parsedData.category)
         ) {
             return {
                 ...parsedData,

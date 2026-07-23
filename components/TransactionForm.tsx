@@ -9,7 +9,7 @@ import XIcon from './icons/XIcon';
 import { parseTransactionText } from '../services/geminiService';
 
 interface TransactionFormProps {
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<{ error: string | null }>;
   subcategories: Subcategories;
   addSubcategory: (category: CategoryName, name:string, expected?: number) => void;
   onClose: () => void;
@@ -90,11 +90,12 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
     }
   }, [parsedData, subcategories]);
 
-  const handleManualSubmit = (e: React.FormEvent) => {
+  const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     const trimmedSubcategory = manualSubcategory.trim();
     if (!manualCategory || !trimmedSubcategory || !manualAmount) {
-      alert('Please fill out all required fields.');
+      setError('Please fill out all required fields.');
       return;
     }
 
@@ -109,15 +110,20 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
     } else {
       addSubcategory(manualCategory, finalSubcategoryName);
     }
-    
-    addTransaction({
+
+    const { error: saveError } = await addTransaction({
       date: manualDate,
       category: manualCategory,
       subcategory: finalSubcategoryName,
       amount: parseFloat(manualAmount),
       note: manualNote,
     });
-    
+
+    if (saveError) {
+      setError(saveError);
+      return;
+    }
+
     onClose();
   };
   
@@ -144,7 +150,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
     setIsLoading(false);
   };
   
-  const handleAiSubmit = (e: React.FormEvent) => {
+  const handleAiSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!parsedData) return;
     setError(null);
@@ -172,7 +178,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
       subcategoryToSave = parsedData.subcategory;
     }
     
-    addTransaction({ ...parsedData, subcategory: subcategoryToSave });
+    const { error: saveError } = await addTransaction({ ...parsedData, subcategory: subcategoryToSave });
+    if (saveError) {
+      setError(saveError);
+      return;
+    }
     onClose();
   };
 
@@ -221,10 +231,10 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
             
             {/* TABS */}
             <div className="flex border-b border-black/10 mb-6">
-                 <button onClick={() => setActiveTab('ai')} className={`py-2 px-4 text-sm font-semibold transition-colors ${activeTab === 'ai' ? 'text-green-accent border-b-2 border-green-accent' : 'text-black/50 hover:text-black/80'}`}>
+                 <button onClick={() => { setActiveTab('ai'); setError(null); }} className={`py-2 px-4 text-sm font-semibold transition-colors ${activeTab === 'ai' ? 'text-green-accent border-b-2 border-green-accent' : 'text-black/50 hover:text-black/80'}`}>
                     AI Assist
                 </button>
-                <button onClick={() => setActiveTab('manual')} className={`py-2 px-4 text-sm font-semibold transition-colors ${activeTab === 'manual' ? 'text-green-accent border-b-2 border-green-accent' : 'text-black/50 hover:text-black/80'}`}>
+                <button onClick={() => { setActiveTab('manual'); setError(null); }} className={`py-2 px-4 text-sm font-semibold transition-colors ${activeTab === 'manual' ? 'text-green-accent border-b-2 border-green-accent' : 'text-black/50 hover:text-black/80'}`}>
                     Manual Entry
                 </button>
             </div>
@@ -270,6 +280,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
                         <input type="text" id="note" value={manualNote} onChange={e => setManualNote(e.target.value)} placeholder="(Optional)"
                                 className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40" />
                     </div>
+                    {error && <p className="text-danger text-sm text-center md:col-span-2">{error}</p>}
                     <button type="submit" className={`${BTN_PRIMARY} md:col-span-2 space-x-2`}>
                         <PlusIcon className="w-5 h-5" />
                         <span>Add Transaction</span>

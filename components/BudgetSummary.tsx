@@ -1,7 +1,7 @@
 import React from 'react';
 import type { CategoryName } from '../types';
 import { CATEGORY_NAMES } from '../types';
-import { CATEGORY_COLORS, CARD_STYLE } from '../constants';
+import { getCategoryColor, CARD_STYLE } from '../constants';
 import { useSettings } from '../contexts/SettingsContext';
 
 interface BudgetSummaryProps {
@@ -15,7 +15,7 @@ const SummaryRow: React.FC<{
   actual: number;
 }> = ({ categoryName, expected, actual }) => {
   const { formatCurrency } = useSettings();
-  const { hex } = CATEGORY_COLORS[categoryName];
+  const { hex } = getCategoryColor(categoryName);
   // Guard against division by zero
   const progress = expected > 0 ? (actual / expected) * 100 : 0;
 

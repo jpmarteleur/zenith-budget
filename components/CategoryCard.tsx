@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { CategoryName, Subcategory } from '../types';
-import { CATEGORY_COLORS, CARD_STYLE } from '../constants';
+import { getCategoryColor, CARD_STYLE } from '../constants';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 import EyeIcon from './icons/EyeIcon';
@@ -146,7 +146,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
   const { formatCurrency } = useSettings();
   const [newSubcategoryName, setNewSubcategoryName] = useState('');
   const [newSubcategoryExpected, setNewSubcategoryExpected] = useState('');
-  const { hex } = CATEGORY_COLORS[categoryName];
+  const { hex } = getCategoryColor(categoryName);
 
   const handleSubcategoryAdd = (e: React.FormEvent) => {
     e.preventDefault();

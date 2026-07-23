@@ -1,7 +1,7 @@
 import React from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { CategoryName } from '../types';
-import { CATEGORY_COLORS } from '../constants';
+import { getCategoryColor } from '../constants';
 
 interface CategoryPieChartProps {
     actualAmounts: Record<CategoryName, number>;
@@ -46,7 +46,7 @@ const CategoryPieChart: React.FC<CategoryPieChartProps> = ({ actualAmounts }) =>
                     nameKey="name"
                 >
                     {data.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[entry.name as CategoryName].hex} />
+                        <Cell key={`cell-${index}`} fill={getCategoryColor(entry.name).hex} />
                     ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />

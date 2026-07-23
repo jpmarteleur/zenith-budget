@@ -1,6 +1,6 @@
 import React from 'react';
 import type { CategoryName } from '../types';
-import { CATEGORY_COLORS, CARD_STYLE } from '../constants';
+import { getCategoryColor, CARD_STYLE } from '../constants';
 import { useSettings } from '../contexts/SettingsContext';
 
 interface DashboardSummaryProps {
@@ -11,7 +11,7 @@ interface DashboardSummaryProps {
 
 const DashboardSummary: React.FC<DashboardSummaryProps> = ({ categoryName, expected, actual }) => {
   const { formatCurrency } = useSettings();
-  const { hex } = CATEGORY_COLORS[categoryName];
+  const { hex } = getCategoryColor(categoryName);
   const remaining = expected - actual;
   const progress = expected > 0 ? (actual / expected) * 100 : 0;
 

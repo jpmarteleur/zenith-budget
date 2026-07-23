@@ -226,8 +226,8 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
         }
     }, [selectedMonth, currentUser, allData, setGuestDataInStorage]);
 
-    const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>) => {
-        if (!currentUser) return;
+    const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>): Promise<{ error: string | null }> => {
+        if (!currentUser) return { error: 'You must be signed in to add a transaction.' };
 
         if (currentUser.id === GUEST_USER_ID) {
             const newTransaction: Transaction = { ...transaction, id: crypto.randomUUID() };
@@ -236,7 +236,7 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
             const newAllData = { ...allData, [selectedMonth]: { ...currentMonth, transactions: newTransactions } };
             setAllData(newAllData);
             setGuestDataInStorage(newAllData);
-            return;
+            return { error: null };
         }
 
         const transactionData = { ...transaction, user_id: currentUser.id, month: selectedMonth };
@@ -244,12 +244,13 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
 
         if (error || !data) {
             console.error("Error adding transaction:", error);
-            return;
+            return { error: error?.message ?? 'Failed to save transaction.' };
         }
 
         const newTransaction: Transaction = data as Transaction;
         const newTransactions = [newTransaction, ...currentMonthData.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setAllData(prev => ({ ...prev, [selectedMonth]: { ...prev[selectedMonth], transactions: newTransactions } }));
+        return { error: null };
     }, [currentMonthData.transactions, selectedMonth, currentUser, allData, setGuestDataInStorage]);
 
     const updateTransaction = useCallback(async (updatedTransaction: Transaction) => {
