@@ -7,6 +7,7 @@ import { CARD_STYLE, BTN_PRIMARY, BTN_OUTLINE } from '../constants';
 import PlusIcon from './icons/PlusIcon';
 import XIcon from './icons/XIcon';
 import { parseTransactionText } from '../services/geminiService';
+import { toDateKey, todayKey } from '../utils/dates';
 
 interface TransactionFormProps {
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<{ error: string | null }>;
@@ -33,15 +34,14 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
     const firstDay = new Date(year, month - 1, 1);
     const lastDay = new Date(year, month, 0); // Day 0 of next month is last day of current month
     return [
-        firstDay.toISOString().split('T')[0],
-        lastDay.toISOString().split('T')[0]
+        toDateKey(firstDay),
+        toDateKey(lastDay)
     ];
   }, [selectedMonth]);
 
   const getInitialDate = useCallback(() => {
-      const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
-      
+      const todayStr = todayKey();
+
       // If today is within the selected month's range, use today.
       if (todayStr >= monthMin && todayStr <= monthMax) {
           return todayStr;

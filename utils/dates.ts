@@ -6,6 +6,17 @@
 // land in the previous month and then be silently dropped on reload, because
 // useBudget only keeps transactions whose `month` has a matching budget row.
 
+// A Date as "YYYY-MM-DD" in the *viewer's own* timezone.
+//
+// Always use this instead of `.toISOString().split('T')[0]`, which renders UTC: at
+// 11pm in Chicago (UTC-6) the UTC date is already tomorrow, so a transaction logged
+// late at night would be filed on the wrong day.
+export const toDateKey = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+// Today's date, in the viewer's timezone.
+export const todayKey = (): string => toDateKey(new Date());
+
 // Number of days in a "YYYY-MM" month. Day 0 of the *next* month is the last day
 // of this one, which handles leap years without a special case.
 export const daysInMonth = (month: string): number => {

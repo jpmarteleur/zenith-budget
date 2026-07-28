@@ -28,8 +28,13 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { text, subcategories } = req.body;
-  
+  const { text, subcategories, today } = req.body;
+
+  // This handler runs on a UTC server, so `new Date()` here is not the user's date —
+  // late in the evening in the Americas it is already tomorrow. The client sends its
+  // own local date; only fall back to UTC if an older client omits it.
+  const todayStr = /^\d{4}-\d{2}-\d{2}$/.test(today) ? today : new Date().toISOString().split('T')[0];
+
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
   try {
@@ -49,7 +54,7 @@ export default async function handler(req: any, res: any) {
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Parse the following transaction. Your primary goal is to categorize it into an existing subcategory if one is a good match. Only create a new subcategory if none of the existing ones are suitable. For income, use the 'Income' category. For spending, decide if it's a general 'Expense', a recurring 'Bill', a payment towards 'Debt', or putting money into 'Savings' or 'Investments'. ${subcategoryContext} Today's date is ${new Date().toISOString().split('T')[0]}. Transaction: "${text}"`,
+      contents: `Parse the following transaction. Your primary goal is to categorize it into an existing subcategory if one is a good match. Only create a new subcategory if none of the existing ones are suitable. For income, use the 'Income' category. For spending, decide if it's a general 'Expense', a recurring 'Bill', a payment towards 'Debt', or putting money into 'Savings' or 'Investments'. ${subcategoryContext} Today's date is ${todayStr}. Transaction: "${text}"`,
       config: {
         responseMimeType: "application/json",
         responseSchema: schema,

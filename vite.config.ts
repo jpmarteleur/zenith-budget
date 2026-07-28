@@ -40,7 +40,11 @@ export default defineConfig(({ mode }) => {
                   req.on('error', reject);
                 });
 
-                const { text, subcategories } = body || {};
+                const { text, subcategories, today } = body || {};
+
+                // Mirrors api/parse-transaction.ts: the client sends its own local
+                // date because this handler's clock is not the user's.
+                const todayStr = /^\d{4}-\d{2}-\d{2}$/.test(today) ? today : new Date().toISOString().split('T')[0];
 
                 if (!env.GEMINI_API_KEY) {
                   res.statusCode = 500;
@@ -79,7 +83,7 @@ export default defineConfig(({ mode }) => {
 
                 const result = await ai.models.generateContent({
                   model: 'gemini-2.5-flash',
-                  contents: `Parse the following transaction. Your primary goal is to categorize it into an existing subcategory if one is a good match. Only create a new subcategory if none of the existing ones are suitable. For income, use the 'Income' category. For spending, decide if it's a general 'Expense', a recurring 'Bill', a payment towards 'Debt', or putting money into 'Savings' or 'Investments'. ${subcategoryContext} Today's date is ${new Date().toISOString().split('T')[0]}. Transaction: "${text}"`,
+                  contents: `Parse the following transaction. Your primary goal is to categorize it into an existing subcategory if one is a good match. Only create a new subcategory if none of the existing ones are suitable. For income, use the 'Income' category. For spending, decide if it's a general 'Expense', a recurring 'Bill', a payment towards 'Debt', or putting money into 'Savings' or 'Investments'. ${subcategoryContext} Today's date is ${todayStr}. Transaction: "${text}"`,
                   config: { responseMimeType: 'application/json', responseSchema: schema },
                 });
 

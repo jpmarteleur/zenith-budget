@@ -1,6 +1,7 @@
 
 import type { CategoryName, Subcategories } from '../types';
 import { CATEGORY_NAMES } from '../types';
+import { todayKey } from '../utils/dates';
 
 export const parseTransactionText = async (text: string, subcategories: Subcategories): Promise<{
     amount: number;
@@ -12,7 +13,9 @@ export const parseTransactionText = async (text: string, subcategories: Subcateg
         const response = await fetch('/api/parse-transaction', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, subcategories })
+            // The handler runs on a UTC server, so it can't work out the user's
+            // date on its own — send ours.
+            body: JSON.stringify({ text, subcategories, today: todayKey() })
         });
 
         if (!response.ok) {
