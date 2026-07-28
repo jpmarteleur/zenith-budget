@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import NavBar from './components/NavBar';
 import BudgetPage from './pages/BudgetPage';
 import DashboardPage from './pages/DashboardPage';
 import HowToPage from './pages/HowToPage';
 import SettingsPage from './pages/SettingsPage';
 import { useBudget } from './hooks/useBudget';
+import { useRecurring } from './hooks/useRecurring';
 import { useAuth } from './hooks/useAuth';
 
 export type Page = 'Budget' | 'Dashboard' | 'How To' | 'Settings';
@@ -19,6 +20,18 @@ const MainApp: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonth());
   const { currentUser } = useAuth();
   const budgetData = useBudget(selectedMonth, currentUser);
+  // Hoisted here rather than into NavBar because the rules are needed in two places:
+  // the New Month checklist and the Settings manager. One instance keeps them in sync.
+  const recurringData = useRecurring(currentUser);
+
+  // Lets the New Month modal preview which subcategories the new month will start
+  // with, so the recurring checklist can flag any it would have to create.
+  const subcategoriesByMonth = useMemo(
+    () => Object.fromEntries(
+      Object.keys(budgetData.allData).map(m => [m, budgetData.allData[m].subcategories])
+    ),
+    [budgetData.allData]
+  );
 
   useEffect(() => {
     if (budgetData.isLoaded && budgetData.availableMonths.length > 0 && !budgetData.availableMonths.includes(selectedMonth)) {
@@ -29,15 +42,15 @@ const MainApp: React.FC = () => {
   const renderPage = () => {
     switch (activePage) {
       case 'Budget':
-        return <BudgetPage {...budgetData} selectedMonth={selectedMonth} />;
+        return <BudgetPage {...budgetData} selectedMonth={selectedMonth} activeRecurringRules={recurringData.activeRules} />;
       case 'Dashboard':
         return <DashboardPage {...budgetData} selectedMonth={selectedMonth} />;
       case 'How To':
         return <HowToPage />;
       case 'Settings':
-        return <SettingsPage />;
+        return <SettingsPage {...recurringData} subcategories={budgetData.subcategories} />;
       default:
-        return <BudgetPage {...budgetData} selectedMonth={selectedMonth} />;
+        return <BudgetPage {...budgetData} selectedMonth={selectedMonth} activeRecurringRules={recurringData.activeRules} />;
     }
   };
 
@@ -60,6 +73,8 @@ const MainApp: React.FC = () => {
             availableMonths={budgetData.availableMonths}
             createNewMonth={budgetData.createNewMonth}
             deleteMonth={budgetData.deleteMonth}
+            activeRecurringRules={recurringData.activeRules}
+            subcategoriesByMonth={subcategoriesByMonth}
           />
           <main className="mt-6">
             {renderPage()}

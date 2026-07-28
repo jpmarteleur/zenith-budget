@@ -1,15 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { useBudget } from '../hooks/useBudget';
 import BudgetIndicator from '../components/BudgetIndicator';
 import CategoryCard from '../components/CategoryCard';
 import TransactionForm from '../components/TransactionForm';
 import TransactionTable from '../components/TransactionTable';
+import ApplyRecurringModal from '../components/ApplyRecurringModal';
 import { CATEGORY_NAMES } from '../types';
-import { CARD_STYLE, BTN_PRIMARY } from '../constants';
+import type { RecurringRule } from '../types';
+import { CARD_STYLE, BTN_PRIMARY, BTN_OUTLINE } from '../constants';
 import BudgetSummary from '../components/BudgetSummary';
 import PlusIcon from '../components/icons/PlusIcon';
 
-type BudgetPageProps = ReturnType<typeof useBudget> & { selectedMonth: string };
+type BudgetPageProps = ReturnType<typeof useBudget> & {
+  selectedMonth: string;
+  activeRecurringRules: RecurringRule[];
+};
 
 const BudgetPage: React.FC<BudgetPageProps> = (props) => {
   const {
@@ -28,9 +33,20 @@ const BudgetPage: React.FC<BudgetPageProps> = (props) => {
     updateTransaction,
     deleteTransaction,
     selectedMonth,
+    activeRecurringRules,
+    applyRecurringToMonth,
   } = props;
 
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isApplyRecurringVisible, setIsApplyRecurringVisible] = useState(false);
+
+  // Rules whose transaction is already in this month, matched by the id stamped on
+  // the transaction when it was generated.
+  const appliedRuleIds = useMemo(
+    () => new Set(transactions.map(t => t.recurring_id).filter(Boolean) as string[]),
+    [transactions]
+  );
+  const pendingRecurringCount = activeRecurringRules.filter(r => !appliedRuleIds.has(r.id)).length;
 
   return (
     <div className="space-y-6">
@@ -86,14 +102,30 @@ const BudgetPage: React.FC<BudgetPageProps> = (props) => {
         </div>
       </div>
       
-      <TransactionTable 
-        transactions={transactions} 
+      {pendingRecurringCount > 0 && (
+        <div className={`${CARD_STYLE} p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3`}>
+          <p className="text-sm text-black/70">
+            {pendingRecurringCount === 1
+              ? "1 recurring transaction hasn't been added to this month yet."
+              : `${pendingRecurringCount} recurring transactions haven't been added to this month yet.`}
+          </p>
+          <button
+            onClick={() => setIsApplyRecurringVisible(true)}
+            className={`${BTN_OUTLINE} flex-shrink-0`}
+          >
+            Apply recurring ({pendingRecurringCount})
+          </button>
+        </div>
+      )}
+
+      <TransactionTable
+        transactions={transactions}
         updateTransaction={updateTransaction}
         deleteTransaction={deleteTransaction}
         subcategories={subcategories}
         onLogTransactionClick={() => setIsFormVisible(true)}
       />
-      
+
       {isFormVisible && (
           <TransactionForm 
             addTransaction={addTransaction} 
@@ -102,6 +134,17 @@ const BudgetPage: React.FC<BudgetPageProps> = (props) => {
             onClose={() => setIsFormVisible(false)}
             selectedMonth={selectedMonth}
           />
+      )}
+
+      {isApplyRecurringVisible && (
+        <ApplyRecurringModal
+          onClose={() => setIsApplyRecurringVisible(false)}
+          onApply={items => applyRecurringToMonth(selectedMonth, items)}
+          rules={activeRecurringRules}
+          month={selectedMonth}
+          subcategories={subcategories}
+          appliedRuleIds={appliedRuleIds}
+        />
       )}
 
     </div>

@@ -107,6 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isGuest) {
           localStorage.removeItem('zenith-is-guest');
           localStorage.removeItem('zenith-guest-budget'); // Clear guest data on logout
+          localStorage.removeItem('zenith-guest-recurring');
           setIsGuest(false);
           setCurrentUser(null);
       } else {

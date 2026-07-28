@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { Transaction, CategoryName, Subcategory, Subcategories } from '../types';
+import type { Transaction, CategoryName, Subcategory, Subcategories, RecurringApplyItem } from '../types';
 import { CATEGORY_NAMES } from '../types';
 import { GUEST_USER_ID } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
+import { monthDayToDate, resolveSourceMonth } from '../utils/dates';
 import type { User } from '@supabase/supabase-js';
 
 interface MonthData {
@@ -16,6 +17,34 @@ const LOCAL_STORAGE_KEY = 'zenith-guest-budget';
 
 const blankSubcategories: Subcategories = {
     Income: [], Expenses: [], Bills: [], Savings: [], Investments: [], Debts: [],
+};
+
+const byDateDesc = (a: Transaction, b: Transaction) =>
+    new Date(b.date).getTime() - new Date(a.date).getTime();
+
+// Make sure every subcategory a confirmed recurring item needs actually exists in
+// `subs`, MUTATING `subs` to add any that don't. Mirrors the same fallback that
+// TransactionForm applies to a hand-entered transaction: match case-insensitively,
+// adopt the existing subcategory's canonical casing on a hit, and create at
+// `expected: 0` on a miss. Creating at 0 never overwrites a budgeted amount — the
+// line simply didn't exist before. Without this, a generated transaction would count
+// toward its category total but have no row in CategoryCard to appear in.
+//
+// Returns the items with their subcategory names canonicalised, plus whether
+// anything was created (so callers know if `subs` needs persisting).
+const backfillSubcategories = (subs: Subcategories, items: RecurringApplyItem[]) => {
+    let created = false;
+    const resolved = items.map(item => {
+        const name = item.subcategory.trim();
+        if (!subs[item.category]) subs[item.category] = [];
+        const list = subs[item.category];
+        const existing = list.find(s => s.name.toLowerCase() === name.toLowerCase());
+        if (existing) return { ...item, subcategory: existing.name };
+        list.push({ id: crypto.randomUUID(), name, expected: 0 });
+        created = true;
+        return { ...item, subcategory: name };
+    });
+    return { resolved, created };
 };
 
 // --- GUEST DEMO DATA ---
@@ -161,7 +190,7 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
 
             const { data: transactions, error: transError } = await supabase
                 .from('transactions')
-                .select('id, date, category, subcategory, amount, note, month')
+                .select('id, date, category, subcategory, amount, note, month, recurring_id')
                 .eq('user_id', currentUser.id);
 
             if (transError) {
@@ -364,36 +393,24 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
         return newExpected;
     }, [currentMonthData.subcategories]);
 
-    // Accept an optional sourceMonth when copying
-    const createNewMonth = useCallback(async (month: string, option: 'copy' | 'blank' | 'scratch', sourceMonth?: string) => {
+    // Accept an optional sourceMonth when copying, plus any recurring transactions
+    // the user confirmed in the New Month checklist.
+    const createNewMonth = useCallback(async (
+        month: string,
+        option: 'copy' | 'blank' | 'scratch',
+        sourceMonth?: string,
+        recurringToApply: RecurringApplyItem[] = []
+    ) => {
         if (!currentUser || allData[month]) return;
 
         let subcategoriesToUse: Subcategories;
         if (option === 'scratch') {
-            subcategoriesToUse = blankSubcategories;
+            // Clone rather than reference: the recurring back-fill below mutates
+            // `subcategoriesToUse`, and `blankSubcategories` is a shared module-level
+            // constant also used as the empty-month fallback.
+            subcategoriesToUse = JSON.parse(JSON.stringify(blankSubcategories));
         } else {
-            // Helper to compute previous month string
-            const getPreviousMonthStr = (monthStr: string) => {
-                const [y, m] = monthStr.split('-').map(Number);
-                const d = new Date(y, m - 1);
-                d.setMonth(d.getMonth() - 1);
-                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-            };
-
-            // Determine source to copy from: explicit sourceMonth (if provided and exists), else previous month relative to target, else fallback to most recent month
-            let sourceToUse: string | null = null;
-            if (sourceMonth && allData[sourceMonth]) {
-                sourceToUse = sourceMonth;
-            } else {
-                const prev = getPreviousMonthStr(month);
-                if (allData[prev]) {
-                    sourceToUse = prev;
-                } else {
-                    const sortedMonths = Object.keys(allData).sort().reverse();
-                    sourceToUse = sortedMonths.length > 0 ? sortedMonths[0] : null;
-                }
-            }
-
+            const sourceToUse = resolveSourceMonth(Object.keys(allData), month, sourceMonth);
             const subcategoriesToCopyFrom = sourceToUse ? allData[sourceToUse].subcategories : blankSubcategories;
             subcategoriesToUse = JSON.parse(JSON.stringify(subcategoriesToCopyFrom));
 
@@ -404,19 +421,132 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
             }
         }
 
-        const newAllData = { ...allData, [month]: { transactions: [], subcategories: subcategoriesToUse } };
-        setAllData(newAllData);
+        const { resolved } = backfillSubcategories(subcategoriesToUse, recurringToApply);
 
         if (currentUser.id === GUEST_USER_ID) {
+            const guestTransactions: Transaction[] = resolved.map(item => ({
+                id: crypto.randomUUID(),
+                date: monthDayToDate(month, item.day_of_month),
+                category: item.category,
+                subcategory: item.subcategory,
+                amount: item.amount,
+                note: item.note,
+                recurring_id: item.rule_id,
+            })).sort(byDateDesc);
+
+            const newAllData = { ...allData, [month]: { transactions: guestTransactions, subcategories: subcategoriesToUse } };
+            setAllData(newAllData);
             setGuestDataInStorage(newAllData);
             return;
         }
 
+        setAllData({ ...allData, [month]: { transactions: [], subcategories: subcategoriesToUse } });
+
+        // Budget row first, always. A transaction whose month has no budget row is
+        // dropped on every reload, which would make it invisible and undeletable.
         const { error } = await supabase.from('budgets').insert({ user_id: currentUser.id, month: month, subcategories: subcategoriesToUse });
         if (error) {
             console.error("Error creating new month:", error);
             setAllData(allData); // Revert
+            return;
         }
+
+        if (resolved.length === 0) return;
+
+        const rows = resolved.map(item => ({
+            user_id: currentUser.id,
+            month,
+            date: monthDayToDate(month, item.day_of_month),
+            category: item.category,
+            subcategory: item.subcategory,
+            amount: item.amount,
+            note: item.note,
+            recurring_id: item.rule_id,
+        }));
+
+        // One array insert is a single statement, so the rows all land or none do.
+        const { data, error: transError } = await supabase.from('transactions').insert(rows).select();
+        if (transError || !data) {
+            // The month itself was created correctly — keep it. The user can retry the
+            // recurring transactions from the Budget page rather than lose the month.
+            console.error("Error adding recurring transactions:", transError);
+            return;
+        }
+
+        setAllData(prev => ({
+            ...prev,
+            [month]: { ...prev[month], transactions: (data as Transaction[]).sort(byDateDesc) }
+        }));
+    }, [allData, currentUser, setGuestDataInStorage]);
+
+    // Apply confirmed recurring items to a month that already exists — for months
+    // created before a rule was added. Takes `month` explicitly rather than using
+    // `selectedMonth` so it can never write to the wrong month.
+    const applyRecurringToMonth = useCallback(async (month: string, items: RecurringApplyItem[]) => {
+        if (!currentUser || !allData[month] || items.length === 0) return;
+
+        const monthData = allData[month];
+        const nextSubcategories: Subcategories = JSON.parse(JSON.stringify(monthData.subcategories));
+        const { resolved, created } = backfillSubcategories(nextSubcategories, items);
+
+        if (currentUser.id === GUEST_USER_ID) {
+            const guestTransactions: Transaction[] = resolved.map(item => ({
+                id: crypto.randomUUID(),
+                date: monthDayToDate(month, item.day_of_month),
+                category: item.category,
+                subcategory: item.subcategory,
+                amount: item.amount,
+                note: item.note,
+                recurring_id: item.rule_id,
+            }));
+
+            const newAllData = {
+                ...allData,
+                [month]: {
+                    subcategories: nextSubcategories,
+                    transactions: [...guestTransactions, ...monthData.transactions].sort(byDateDesc),
+                }
+            };
+            setAllData(newAllData);
+            setGuestDataInStorage(newAllData);
+            return;
+        }
+
+        // Subcategories first, so every new transaction has a row to display in.
+        if (created) {
+            const { error } = await supabase.from('budgets')
+                .update({ subcategories: nextSubcategories })
+                .match({ user_id: currentUser.id, month });
+            if (error) {
+                console.error("Error adding subcategories for recurring transactions:", error);
+                return;
+            }
+        }
+
+        const rows = resolved.map(item => ({
+            user_id: currentUser.id,
+            month,
+            date: monthDayToDate(month, item.day_of_month),
+            category: item.category,
+            subcategory: item.subcategory,
+            amount: item.amount,
+            note: item.note,
+            recurring_id: item.rule_id,
+        }));
+
+        const { data, error } = await supabase.from('transactions').insert(rows).select();
+        if (error || !data) {
+            console.error("Error adding recurring transactions:", error);
+            return;
+        }
+
+        setAllData(prev => ({
+            ...prev,
+            [month]: {
+                subcategories: nextSubcategories,
+                transactions: [...(data as Transaction[]), ...(prev[month]?.transactions || [])].sort(byDateDesc),
+            }
+        }));
     }, [allData, currentUser, setGuestDataInStorage]);
 
     const deleteMonth = useCallback(async (monthToDelete: string) => {
@@ -473,6 +603,7 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
         remainingToSpend,
         availableMonths,
         createNewMonth,
+        applyRecurringToMonth,
         deleteMonth,
         allData, // Expose all data for dashboard charts
     };

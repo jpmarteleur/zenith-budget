@@ -1,15 +1,22 @@
 import React from 'react';
 import { useSettings, CURRENCIES, CurrencyCode } from '../contexts/SettingsContext';
 import { CARD_STYLE, INPUT_STYLE } from '../constants';
+import type { useRecurring } from '../hooks/useRecurring';
+import type { Subcategories } from '../types';
+import RecurringRulesCard from '../components/RecurringRulesCard';
 
-const SettingsPage: React.FC = () => {
+type SettingsPageProps = ReturnType<typeof useRecurring> & { subcategories: Subcategories };
+
+const SettingsPage: React.FC<SettingsPageProps> = ({
+  rules, addRule, updateRule, deleteRule, toggleRuleActive, subcategories,
+}) => {
   const { currency, setCurrency } = useSettings();
 
   return (
     <div className="space-y-6">
       <div className={`${CARD_STYLE} p-6`}>
         <h2 className="text-xl font-bold text-black/87 mb-4">General Settings</h2>
-        
+
         <div className="space-y-4">
           <div>
             <label htmlFor="currency-select" className="block text-sm font-medium text-black/70 mb-2">
@@ -33,6 +40,15 @@ const SettingsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <RecurringRulesCard
+        rules={rules}
+        addRule={addRule}
+        updateRule={updateRule}
+        deleteRule={deleteRule}
+        toggleRuleActive={toggleRuleActive}
+        subcategories={subcategories}
+      />
     </div>
   );
 };

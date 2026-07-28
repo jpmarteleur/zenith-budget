@@ -1,21 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CARD_STYLE, BTN_GHOST, BTN_PRIMARY } from '../constants';
 import XIcon from './icons/XIcon';
+import type { RecurringRule, RecurringApplyItem, Subcategories } from '../types';
+import { resolveSourceMonth } from '../utils/dates';
+import RecurringChecklist, { buildInitialChecklistState, checklistToItems } from './RecurringChecklist';
+import type { ChecklistState } from './RecurringChecklist';
 
 type CreationOption = 'copy' | 'blank' | 'scratch';
 
+const EMPTY_SUBCATEGORIES: Subcategories = {
+  Income: [], Expenses: [], Bills: [], Savings: [], Investments: [], Debts: [],
+};
+
 interface NewMonthModalProps {
-  isOpen: boolean;
   onClose: () => void;
   // new signature: optional sourceMonth when copying
-  onCreate: (month: string, option: CreationOption, sourceMonth?: string) => void;
+  onCreate: (month: string, option: CreationOption, sourceMonth?: string, recurringToApply?: RecurringApplyItem[]) => void;
   month: string;
   availableMonths: string[];
+  activeRecurringRules: RecurringRule[];
+  subcategoriesByMonth: Record<string, Subcategories>;
 }
 
-const NewMonthModal: React.FC<NewMonthModalProps> = ({ isOpen, onClose, onCreate, month, availableMonths }) => {
+const NewMonthModal: React.FC<NewMonthModalProps> = ({ onClose, onCreate, month, availableMonths, activeRecurringRules, subcategoriesByMonth }) => {
   const [creationOption, setCreationOption] = useState<CreationOption>('copy');
   const [selectedMonth, setSelectedMonth] = useState<string>(month);
+  const [checklist, setChecklist] = useState<ChecklistState>(() => buildInitialChecklistState(activeRecurringRules));
+  const [isCreating, setIsCreating] = useState(false);
   // sourceMonth used when copying: default to previous month relative to selectedMonth
   const getPreviousMonthStr = (monthStr: string) => {
     const [y, m] = monthStr.split('-').map(Number);
@@ -26,30 +37,44 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ isOpen, onClose, onCreate
   const defaultSource = getPreviousMonthStr(selectedMonth);
   const [sourceMonth, setSourceMonth] = useState<string>(defaultSource);
 
-  // Lock body scroll when modal is open
+  // Lock body scroll while mounted
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen]);
+  }, []);
 
-  if (!isOpen) return null;
+  const monthAlreadyExists = availableMonths.includes(selectedMonth);
 
-  const handleCreate = () => {
-    onCreate(selectedMonth, creationOption, creationOption === 'copy' ? sourceMonth : undefined);
+  // What the new month's subcategories will be, so the checklist can flag any a rule
+  // would have to create. Resolved the same way createNewMonth resolves them.
+  const targetSubcategories = useMemo(() => {
+    if (creationOption === 'scratch') return EMPTY_SUBCATEGORIES;
+    const source = resolveSourceMonth(
+      availableMonths,
+      selectedMonth,
+      creationOption === 'copy' ? sourceMonth : undefined
+    );
+    return (source && subcategoriesByMonth[source]) || EMPTY_SUBCATEGORIES;
+  }, [creationOption, availableMonths, selectedMonth, sourceMonth, subcategoriesByMonth]);
+
+  const handleCreate = async () => {
+    if (monthAlreadyExists || isCreating) return;
+    setIsCreating(true);
+    await onCreate(
+      selectedMonth,
+      creationOption,
+      creationOption === 'copy' ? sourceMonth : undefined,
+      checklistToItems(activeRecurringRules, checklist),
+    );
+    setIsCreating(false);
   };
-
-  const formattedMonth = new Date(selectedMonth + '-02').toLocaleString('default', { month: 'long', year: 'numeric' });
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
       <div
-        className={`${CARD_STYLE} w-full max-w-md p-4 sm:p-6 animate-fade-in my-auto`}
+        className={`${CARD_STYLE} w-full ${activeRecurringRules.length > 0 ? 'max-w-lg' : 'max-w-md'} p-4 sm:p-6 animate-fade-in my-auto`}
         onClick={e => e.stopPropagation()}
       >
         <style>{`
@@ -80,6 +105,11 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ isOpen, onClose, onCreate
             className="w-full bg-white border border-black/15 rounded-lg py-1 px-2 text-xs text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40"
           />
           <p className="text-xs text-black/40 mt-0.5">Choose any month: past, current, or future.</p>
+          {monthAlreadyExists && (
+            <p className="text-danger text-sm mt-1">
+              A budget already exists for this month. Pick another, or use "Apply recurring" on the Budget page to add recurring transactions to it.
+            </p>
+          )}
         </div>
 
         <p className="text-black/60 mb-4">How would you like to set up this month's budget?</p>
@@ -124,12 +154,28 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ isOpen, onClose, onCreate
           </div>
         </div>
 
+        {activeRecurringRules.length > 0 && (
+          <div className="mt-6">
+            <h4 className="font-semibold text-black/87">Recurring transactions</h4>
+            <p className="text-sm text-black/60 mb-3">
+              These will be added to the new month. Untick anything you don't want, or adjust an amount.
+            </p>
+            <RecurringChecklist
+              rules={activeRecurringRules}
+              month={selectedMonth}
+              state={checklist}
+              onStateChange={setChecklist}
+              subcategories={targetSubcategories}
+            />
+          </div>
+        )}
+
         <div className="mt-8 flex justify-end space-x-4">
           <button onClick={onClose} className={BTN_GHOST}>
             Cancel
           </button>
-          <button onClick={handleCreate} className={BTN_PRIMARY}>
-            Create Budget
+          <button onClick={handleCreate} className={BTN_PRIMARY} disabled={monthAlreadyExists || isCreating}>
+            {isCreating ? 'Creating…' : 'Create Budget'}
           </button>
         </div>
 

@@ -7,6 +7,7 @@ import ChevronDownIcon from './icons/ChevronDownIcon';
 import TrashIcon from './icons/TrashIcon';
 import LogoutIcon from './icons/LogoutIcon';
 import { useAuth } from '../hooks/useAuth';
+import type { RecurringRule, RecurringApplyItem, Subcategories } from '../types';
 
 type CreationOption = 'copy' | 'blank' | 'scratch';
 
@@ -16,8 +17,10 @@ interface NavBarProps {
   selectedMonth: string;
   setSelectedMonth: (month: string) => void;
   availableMonths: string[];
-  createNewMonth: (month: string, option: CreationOption, sourceMonth?: string) => void;
+  createNewMonth: (month: string, option: CreationOption, sourceMonth?: string, recurringToApply?: RecurringApplyItem[]) => Promise<void>;
   deleteMonth: (month: string) => void;
+  activeRecurringRules: RecurringRule[];
+  subcategoriesByMonth: Record<string, Subcategories>;
 }
 
 const NavButton: React.FC<{
@@ -53,7 +56,7 @@ const getNextMonth = (monthStr: string) => {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
-const NavBar: React.FC<NavBarProps> = ({ activePage, setActivePage, selectedMonth, setSelectedMonth, availableMonths, createNewMonth, deleteMonth }) => {
+const NavBar: React.FC<NavBarProps> = ({ activePage, setActivePage, selectedMonth, setSelectedMonth, availableMonths, createNewMonth, deleteMonth, activeRecurringRules, subcategoriesByMonth }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const { currentUser, logout } = useAuth();
@@ -74,8 +77,8 @@ const NavBar: React.FC<NavBarProps> = ({ activePage, setActivePage, selectedMont
     }
   };
   
-  const handleCreateMonth = (month: string, option: CreationOption, sourceMonth?: string) => {
-    createNewMonth(month, option, sourceMonth);
+  const handleCreateMonth = async (month: string, option: CreationOption, sourceMonth?: string, recurringToApply?: RecurringApplyItem[]) => {
+    await createNewMonth(month, option, sourceMonth, recurringToApply);
     setSelectedMonth(month);
     setIsModalOpen(false);
   };
@@ -140,13 +143,18 @@ const NavBar: React.FC<NavBarProps> = ({ activePage, setActivePage, selectedMont
             </div>
         </div>
       </nav>
-      <NewMonthModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onCreate={handleCreateMonth}
-        month={nextMonth}
-        availableMonths={availableMonths}
-      />
+      {/* Mounted conditionally so the modal's state — including any recurring amounts
+          the user tuned — resets cleanly between openings. */}
+      {isModalOpen && (
+        <NewMonthModal
+          onClose={() => setIsModalOpen(false)}
+          onCreate={handleCreateMonth}
+          month={nextMonth}
+          availableMonths={availableMonths}
+          activeRecurringRules={activeRecurringRules}
+          subcategoriesByMonth={subcategoriesByMonth}
+        />
+      )}
       <ConfirmationModal
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
