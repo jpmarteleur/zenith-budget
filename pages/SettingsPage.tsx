@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSettings, CURRENCIES, CurrencyCode } from '../contexts/SettingsContext';
-import { CARD_STYLE, INPUT_STYLE } from '../constants';
+import { CARD_STYLE } from '../constants';
+import SelectField from '../components/SelectField';
 import type { useRecurring } from '../hooks/useRecurring';
 import type { Subcategories } from '../types';
 import RecurringRulesCard from '../components/RecurringRulesCard';
@@ -22,18 +23,19 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
             <label htmlFor="currency-select" className="block text-sm font-medium text-black/70 mb-2">
               Currency
             </label>
-            <select
-              id="currency-select"
-              value={currency.code}
-              onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
-              className={`${INPUT_STYLE} md:w-64`}
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name} ({c.symbol})
-                </option>
-              ))}
-            </select>
+            <div className="md:w-64">
+              <SelectField
+                id="currency-select"
+                value={currency.code}
+                onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name} ({c.symbol})
+                  </option>
+                ))}
+              </SelectField>
+            </div>
             <p className="mt-2 text-sm text-black/60">
               Select the currency you want to use for your budget.
             </p>

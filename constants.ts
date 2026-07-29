@@ -29,3 +29,8 @@ export const BTN_DANGER = `${BTN_BASE} bg-danger text-white hover:opacity-90 py-
 
 // White form control with a green focus ring.
 export const INPUT_STYLE = "w-full bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 placeholder-black/40 focus:outline-none focus:ring-2 focus:ring-green-accent/40 focus:border-green-accent transition-colors";
+
+// Matches INPUT_STYLE, but drops the OS-drawn arrow (which differs per platform and
+// vanishes entirely under `appearance-none`) and leaves room on the right for the
+// chevron that SelectField draws. Always render via SelectField so the arrow is there.
+export const SELECT_STYLE = "w-full bg-white border border-black/15 rounded-lg py-2 pl-3 pr-9 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40 focus:border-green-accent transition-colors appearance-none";

@@ -3,6 +3,8 @@ import { CARD_STYLE, BTN_GHOST, BTN_PRIMARY } from '../constants';
 import XIcon from './icons/XIcon';
 import type { RecurringRule, CategoryName, Subcategories } from '../types';
 import { CATEGORY_NAMES } from '../types';
+import SubcategorySelect from './SubcategorySelect';
+import SelectField from './SelectField';
 
 interface RecurringRuleModalProps {
   onClose: () => void;
@@ -83,31 +85,26 @@ const RecurringRuleModal: React.FC<RecurringRuleModalProps> = ({ onClose, onSave
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex flex-col">
             <label htmlFor="rec-category" className="text-sm font-medium text-black/60 mb-1">Category</label>
-            <select
+            <SelectField
               id="rec-category"
               value={category}
               onChange={e => { setCategory(e.target.value as CategoryName); setSubcategory(''); }}
-              className={inputClass}
             >
               {CATEGORY_NAMES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            </SelectField>
           </div>
 
           <div className="flex flex-col">
             <label htmlFor="rec-subcategory" className="text-sm font-medium text-black/60 mb-1">Subcategory</label>
-            <input
-              type="text"
+            {/* keyed on the category so switching categories resets the create-new state */}
+            <SubcategorySelect
+              key={category}
               id="rec-subcategory"
-              list="rec-subcategory-list"
               value={subcategory}
-              onChange={e => setSubcategory(e.target.value)}
+              onChange={setSubcategory}
+              options={subcategories[category] || []}
               required
-              placeholder="e.g. Netflix"
-              className={inputClass}
             />
-            <datalist id="rec-subcategory-list">
-              {(subcategories[category] || []).map(s => <option key={s.id} value={s.name} />)}
-            </datalist>
           </div>
 
           <div className="flex flex-col">

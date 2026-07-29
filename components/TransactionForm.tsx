@@ -8,6 +8,8 @@ import PlusIcon from './icons/PlusIcon';
 import XIcon from './icons/XIcon';
 import { parseTransactionText } from '../services/geminiService';
 import { toDateKey, todayKey } from '../utils/dates';
+import SubcategorySelect from './SubcategorySelect';
+import SelectField from './SelectField';
 
 interface TransactionFormProps {
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<{ error: string | null }>;
@@ -255,25 +257,21 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
                     </div>
                     <div className="flex flex-col">
                         <label htmlFor="category" className="text-sm font-medium text-black/60 mb-1">Category</label>
-                        <select id="category" value={manualCategory} onChange={e => {setManualCategory(e.target.value as CategoryName); setManualSubcategory('')}} required
-                                className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40 appearance-none">
+                        <SelectField id="category" value={manualCategory} onChange={e => {setManualCategory(e.target.value as CategoryName); setManualSubcategory('')}} required>
                             {CATEGORY_NAMES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                        </select>
+                        </SelectField>
                     </div>
                     <div className="flex flex-col">
                         <label htmlFor="subcategory" className="text-sm font-medium text-black/60 mb-1">Subcategory</label>
-                         <input
+                        {/* keyed on the category so switching categories resets the create-new state */}
+                        <SubcategorySelect
+                            key={manualCategory}
                             id="subcategory"
-                            type="text"
                             value={manualSubcategory}
-                            onChange={e => setManualSubcategory(e.target.value)}
+                            onChange={setManualSubcategory}
+                            options={subcategories[manualCategory] || []}
                             required
-                            list="subcategory-list-manual"
-                            className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40"
                         />
-                        <datalist id="subcategory-list-manual">
-                            {subcategories[manualCategory]?.map(sub => <option key={sub.id} value={sub.name} />)}
-                        </datalist>
                     </div>
                     <div className="flex flex-col md:col-span-2">
                         <label htmlFor="note" className="text-sm font-medium text-black/60 mb-1">Note</label>
@@ -325,9 +323,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
                             </div>
                             <div className="flex flex-col">
                                 <label className="text-sm font-medium text-black/60 mb-1">Category</label>
-                                <select name="category" value={parsedData.category} onChange={handleParsedDataChange} required className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40 appearance-none">
+                                <SelectField name="category" value={parsedData.category} onChange={handleParsedDataChange} required>
                                     {CATEGORY_NAMES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                                </select>
+                                </SelectField>
                             </div>
                             <div className="flex flex-col">
                                 <label htmlFor="subcategory-ai" className="text-sm font-medium text-black/60 mb-1">Subcategory</label>
@@ -354,7 +352,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
                                         </button>
                                     </div>
                                 ) : (
-                                    <select
+                                    <SelectField
                                         id="subcategory-ai"
                                         name="subcategory"
                                         value={parsedData.subcategory}
@@ -368,14 +366,13 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
                                             }
                                         }}
                                         required
-                                        className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40 appearance-none"
                                     >
                                         <option value="" disabled>Select or create...</option>
                                         {subcategories[parsedData.category]?.map(sub => (
                                             <option key={sub.id} value={sub.name}>{sub.name}</option>
                                         ))}
                                         <option value="__CREATE_NEW__" className="italic text-green-accent font-semibold bg-white">-- Create New --</option>
-                                    </select>
+                                    </SelectField>
                                 )}
                             </div>
                             <div className="flex flex-col md:col-span-2">

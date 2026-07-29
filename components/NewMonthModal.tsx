@@ -3,6 +3,7 @@ import { CARD_STYLE, BTN_GHOST, BTN_PRIMARY } from '../constants';
 import XIcon from './icons/XIcon';
 import type { RecurringRule, RecurringApplyItem, Subcategories } from '../types';
 import { resolveSourceMonth } from '../utils/dates';
+import SelectField from './SelectField';
 import RecurringChecklist, { buildInitialChecklistState, checklistToItems } from './RecurringChecklist';
 import type { ChecklistState } from './RecurringChecklist';
 
@@ -124,17 +125,17 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ onClose, onCreate, month,
             {creationOption === 'copy' && (
               <div className="mt-3">
                 <label className="text-xs text-black/60">Source month</label>
-                <select
+                <SelectField
                   value={sourceMonth}
                   onChange={e => setSourceMonth(e.target.value)}
-                  className="mt-1 w-full bg-white border border-black/15 rounded-lg py-2 px-3 text-sm text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40"
+                  className="mt-1 text-sm"
                 >
                   {/* default: previous month relative to selectedMonth */}
                   <option value={getPreviousMonthStr(selectedMonth)}>Previous month ({new Date(getPreviousMonthStr(selectedMonth) + '-02').toLocaleString('default',{month:'long', year:'numeric'})})</option>
                   {availableMonths.map(m => (
                     <option key={m} value={m}>{new Date(m + '-02').toLocaleString('default',{month:'long', year:'numeric'})}</option>
                   ))}
-                </select>
+                </SelectField>
               </div>
             )}
           </div>

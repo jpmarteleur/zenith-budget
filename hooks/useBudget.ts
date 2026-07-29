@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Transaction, CategoryName, Subcategory, Subcategories, RecurringApplyItem } from '../types';
 import { CATEGORY_NAMES } from '../types';
 import { GUEST_USER_ID } from '../contexts/AuthContext';
@@ -119,6 +119,25 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
     const [allData, setAllData] = useState<AllBudgetData>({});
     const [isLoaded, setIsLoaded] = useState(false);
 
+    // Mirrors `allData`, but updated synchronously. React state does not change
+    // until the next render, so two mutations fired in the same tick — adding a new
+    // subcategory and then the transaction that uses it — would both build on the
+    // same stale snapshot and the second would clobber the first. Guest writes read
+    // this instead of the `allData` closure.
+    const allDataRef = useRef<AllBudgetData>(allData);
+
+    // The only way this hook should update allData. Accepts a value or an updater,
+    // keeps the ref in step, and hands back what it committed so guest callers can
+    // persist exactly that.
+    const commitAllData = useCallback((
+        updater: AllBudgetData | ((prev: AllBudgetData) => AllBudgetData)
+    ): AllBudgetData => {
+        const next = typeof updater === 'function' ? updater(allDataRef.current) : updater;
+        allDataRef.current = next;
+        setAllData(next);
+        return next;
+    }, []);
+
     // --- Local Storage Functions for Guest ---
     const getGuestDataFromStorage = (): AllBudgetData | null => {
         try {
@@ -142,7 +161,7 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
     useEffect(() => {
         const fetchData = async () => {
             if (!currentUser) {
-                setAllData({});
+                commitAllData({});
                 setIsLoaded(true);
                 return;
             };
@@ -157,7 +176,7 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
                     guestData = getGuestInitialData();
                     setGuestDataInStorage(guestData);
                 }
-                setAllData(guestData);
+                commitAllData(guestData);
                 setIsLoaded(true);
                 return;
             }
@@ -216,27 +235,26 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
                 newAllData[month].transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             }
 
-            setAllData(newAllData);
+            commitAllData(newAllData);
             setIsLoaded(true);
         };
 
         fetchData();
-    }, [currentUser, setGuestDataInStorage]);
+    }, [currentUser, commitAllData, setGuestDataInStorage]);
 
     const currentMonthData = useMemo(() => allData[selectedMonth] || { transactions: [], subcategories: blankSubcategories }, [allData, selectedMonth]);
 
     const updateMonthData = useCallback(async (data: Partial<MonthData>) => {
         if (!currentUser) return;
 
-        const prevAllData = allData;
-        const newAllData = {
-            ...allData,
+        const prevAllData = allDataRef.current;
+        const newAllData = commitAllData(prev => ({
+            ...prev,
             [selectedMonth]: {
-                ...(allData[selectedMonth] || { transactions: [], subcategories: blankSubcategories }),
+                ...(prev[selectedMonth] || { transactions: [], subcategories: blankSubcategories }),
                 ...data,
             }
-        };
-        setAllData(newAllData);
+        }));
 
         if (currentUser.id === GUEST_USER_ID) {
             setGuestDataInStorage(newAllData);
@@ -250,20 +268,28 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
                 .match({ user_id: currentUser.id, month: selectedMonth });
             if (error) {
                 console.error("Error updating subcategories:", error);
-                setAllData(prevAllData); // Revert on error
+                commitAllData(prevAllData); // Revert on error
             }
         }
-    }, [selectedMonth, currentUser, allData, setGuestDataInStorage]);
+    }, [selectedMonth, currentUser, commitAllData, setGuestDataInStorage]);
 
     const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>): Promise<{ error: string | null }> => {
         if (!currentUser) return { error: 'You must be signed in to add a transaction.' };
 
         if (currentUser.id === GUEST_USER_ID) {
             const newTransaction: Transaction = { ...transaction, id: crypto.randomUUID() };
-            const currentMonth = allData[selectedMonth] || { transactions: [], subcategories: blankSubcategories };
-            const newTransactions = [newTransaction, ...currentMonth.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            const newAllData = { ...allData, [selectedMonth]: { ...currentMonth, transactions: newTransactions } };
-            setAllData(newAllData);
+            // Built from the live ref, not the render's snapshot: the caller may have
+            // just created a subcategory for this transaction in the same tick.
+            const newAllData = commitAllData(prev => {
+                const currentMonth = prev[selectedMonth] || { transactions: [], subcategories: blankSubcategories };
+                return {
+                    ...prev,
+                    [selectedMonth]: {
+                        ...currentMonth,
+                        transactions: [newTransaction, ...currentMonth.transactions].sort(byDateDesc),
+                    }
+                };
+            });
             setGuestDataInStorage(newAllData);
             return { error: null };
         }
@@ -277,19 +303,35 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
         }
 
         const newTransaction: Transaction = data as Transaction;
-        const newTransactions = [newTransaction, ...currentMonthData.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setAllData(prev => ({ ...prev, [selectedMonth]: { ...prev[selectedMonth], transactions: newTransactions } }));
+        commitAllData(prev => {
+            const currentMonth = prev[selectedMonth] || { transactions: [], subcategories: blankSubcategories };
+            return {
+                ...prev,
+                [selectedMonth]: {
+                    ...currentMonth,
+                    transactions: [newTransaction, ...currentMonth.transactions].sort(byDateDesc),
+                }
+            };
+        });
         return { error: null };
-    }, [currentMonthData.transactions, selectedMonth, currentUser, allData, setGuestDataInStorage]);
+    }, [selectedMonth, currentUser, commitAllData, setGuestDataInStorage]);
+
+    // Rewrites just this month's transaction list, always from the latest committed
+    // data rather than the render's snapshot.
+    const commitTransactions = useCallback((
+        mapper: (transactions: Transaction[]) => Transaction[]
+    ): AllBudgetData => commitAllData(prev => {
+        const currentMonth = prev[selectedMonth] || { transactions: [], subcategories: blankSubcategories };
+        return { ...prev, [selectedMonth]: { ...currentMonth, transactions: mapper(currentMonth.transactions) } };
+    }), [commitAllData, selectedMonth]);
 
     const updateTransaction = useCallback(async (updatedTransaction: Transaction) => {
         if (!currentUser) return;
-        const newTransactions = currentMonthData.transactions.map(t => t.id === updatedTransaction.id ? updatedTransaction : t);
+        const applyEdit = (ts: Transaction[]) =>
+            ts.map(t => t.id === updatedTransaction.id ? updatedTransaction : t);
 
         if (currentUser.id === GUEST_USER_ID) {
-            const newAllData = { ...allData, [selectedMonth]: { ...allData[selectedMonth], transactions: newTransactions } };
-            setAllData(newAllData);
-            setGuestDataInStorage(newAllData);
+            setGuestDataInStorage(commitTransactions(applyEdit));
             return;
         }
 
@@ -299,17 +341,15 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
             console.error("Error updating transaction:", error);
             return;
         }
-        setAllData(prev => ({ ...prev, [selectedMonth]: { ...prev[selectedMonth], transactions: newTransactions } }));
-    }, [currentMonthData.transactions, selectedMonth, currentUser, allData, setGuestDataInStorage]);
+        commitTransactions(applyEdit);
+    }, [selectedMonth, currentUser, commitTransactions, setGuestDataInStorage]);
 
     const deleteTransaction = useCallback(async (id: string) => {
         if (!currentUser) return;
-        const newTransactions = currentMonthData.transactions.filter(t => t.id !== id);
+        const applyDelete = (ts: Transaction[]) => ts.filter(t => t.id !== id);
 
         if (currentUser.id === GUEST_USER_ID) {
-            const newAllData = { ...allData, [selectedMonth]: { ...allData[selectedMonth], transactions: newTransactions } };
-            setAllData(newAllData);
-            setGuestDataInStorage(newAllData);
+            setGuestDataInStorage(commitTransactions(applyDelete));
             return;
         }
 
@@ -318,8 +358,8 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
             console.error("Error deleting transaction:", error);
             return;
         }
-        setAllData(prev => ({ ...prev, [selectedMonth]: { ...prev[selectedMonth], transactions: newTransactions } }));
-    }, [currentMonthData.transactions, selectedMonth, currentUser, allData, setGuestDataInStorage]);
+        commitTransactions(applyDelete);
+    }, [selectedMonth, currentUser, commitTransactions, setGuestDataInStorage]);
 
     const addSubcategory = useCallback(async (category: CategoryName, name: string, expected = 0) => {
         const newSub: Subcategory = { id: crypto.randomUUID(), name, expected };
@@ -401,7 +441,8 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
         sourceMonth?: string,
         recurringToApply: RecurringApplyItem[] = []
     ) => {
-        if (!currentUser || allData[month]) return;
+        const dataAtStart = allDataRef.current;
+        if (!currentUser || dataAtStart[month]) return;
 
         let subcategoriesToUse: Subcategories;
         if (option === 'scratch') {
@@ -410,8 +451,8 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
             // constant also used as the empty-month fallback.
             subcategoriesToUse = JSON.parse(JSON.stringify(blankSubcategories));
         } else {
-            const sourceToUse = resolveSourceMonth(Object.keys(allData), month, sourceMonth);
-            const subcategoriesToCopyFrom = sourceToUse ? allData[sourceToUse].subcategories : blankSubcategories;
+            const sourceToUse = resolveSourceMonth(Object.keys(dataAtStart), month, sourceMonth);
+            const subcategoriesToCopyFrom = sourceToUse ? dataAtStart[sourceToUse].subcategories : blankSubcategories;
             subcategoriesToUse = JSON.parse(JSON.stringify(subcategoriesToCopyFrom));
 
             if (option === 'blank') {
@@ -434,20 +475,25 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
                 recurring_id: item.rule_id,
             })).sort(byDateDesc);
 
-            const newAllData = { ...allData, [month]: { transactions: guestTransactions, subcategories: subcategoriesToUse } };
-            setAllData(newAllData);
-            setGuestDataInStorage(newAllData);
+            setGuestDataInStorage(commitAllData(prev => ({
+                ...prev,
+                [month]: { transactions: guestTransactions, subcategories: subcategoriesToUse }
+            })));
             return;
         }
 
-        setAllData({ ...allData, [month]: { transactions: [], subcategories: subcategoriesToUse } });
+        commitAllData(prev => ({ ...prev, [month]: { transactions: [], subcategories: subcategoriesToUse } }));
 
         // Budget row first, always. A transaction whose month has no budget row is
         // dropped on every reload, which would make it invisible and undeletable.
         const { error } = await supabase.from('budgets').insert({ user_id: currentUser.id, month: month, subcategories: subcategoriesToUse });
         if (error) {
             console.error("Error creating new month:", error);
-            setAllData(allData); // Revert
+            commitAllData(prev => {
+                const reverted = { ...prev };
+                delete reverted[month];
+                return reverted;
+            });
             return;
         }
 
@@ -473,19 +519,19 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
             return;
         }
 
-        setAllData(prev => ({
+        commitAllData(prev => ({
             ...prev,
             [month]: { ...prev[month], transactions: (data as Transaction[]).sort(byDateDesc) }
         }));
-    }, [allData, currentUser, setGuestDataInStorage]);
+    }, [currentUser, commitAllData, setGuestDataInStorage]);
 
     // Apply confirmed recurring items to a month that already exists — for months
     // created before a rule was added. Takes `month` explicitly rather than using
     // `selectedMonth` so it can never write to the wrong month.
     const applyRecurringToMonth = useCallback(async (month: string, items: RecurringApplyItem[]) => {
-        if (!currentUser || !allData[month] || items.length === 0) return;
+        const monthData = allDataRef.current[month];
+        if (!currentUser || !monthData || items.length === 0) return;
 
-        const monthData = allData[month];
         const nextSubcategories: Subcategories = JSON.parse(JSON.stringify(monthData.subcategories));
         const { resolved, created } = backfillSubcategories(nextSubcategories, items);
 
@@ -500,15 +546,13 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
                 recurring_id: item.rule_id,
             }));
 
-            const newAllData = {
-                ...allData,
+            setGuestDataInStorage(commitAllData(prev => ({
+                ...prev,
                 [month]: {
                     subcategories: nextSubcategories,
-                    transactions: [...guestTransactions, ...monthData.transactions].sort(byDateDesc),
+                    transactions: [...guestTransactions, ...(prev[month]?.transactions || [])].sort(byDateDesc),
                 }
-            };
-            setAllData(newAllData);
-            setGuestDataInStorage(newAllData);
+            })));
             return;
         }
 
@@ -540,25 +584,27 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
             return;
         }
 
-        setAllData(prev => ({
+        commitAllData(prev => ({
             ...prev,
             [month]: {
                 subcategories: nextSubcategories,
                 transactions: [...(data as Transaction[]), ...(prev[month]?.transactions || [])].sort(byDateDesc),
             }
         }));
-    }, [allData, currentUser, setGuestDataInStorage]);
+    }, [currentUser, commitAllData, setGuestDataInStorage]);
 
     const deleteMonth = useCallback(async (monthToDelete: string) => {
-        if (!currentUser || Object.keys(allData).length <= 1) {
+        const prevAllData = allDataRef.current;
+        if (!currentUser || Object.keys(prevAllData).length <= 1) {
             console.error("Cannot delete the only budget month.");
             return;
         }
 
-        const prevAllData = { ...allData };
-        const newData = { ...allData };
-        delete newData[monthToDelete];
-        setAllData(newData);
+        const newData = commitAllData(prev => {
+            const next = { ...prev };
+            delete next[monthToDelete];
+            return next;
+        });
 
         if (currentUser.id === GUEST_USER_ID) {
             setGuestDataInStorage(newData);
@@ -570,9 +616,9 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
 
         if (budgetError || transError) {
             console.error("Error deleting month:", budgetError || transError);
-            setAllData(prevAllData); // Revert
+            commitAllData(prevAllData); // Revert
         }
-    }, [allData, currentUser, setGuestDataInStorage]);
+    }, [currentUser, commitAllData, setGuestDataInStorage]);
 
     const totalExpectedIncome = expectedAmounts.Income;
     const totalExpectedSpending = (expectedAmounts.Expenses + expectedAmounts.Bills + expectedAmounts.Savings + expectedAmounts.Investments + expectedAmounts.Debts);
