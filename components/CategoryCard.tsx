@@ -57,11 +57,11 @@ const SubcategoryRow: React.FC<{
     // For savings/investments: remaining = actual (amount saved/invested)
     const remaining = isSavings || isInvestments ? actual : isIncome ? actual - sub.expected : sub.expected - actual;
 
-    // Color logic for Savings and Investments:
-    // - Red if actual < expected (behind goal)
-    // - Grey if actual = expected (on target)
-    // - Gold if actual > expected (milestone: goal exceeded — the one reserved gold moment)
-    // For other categories: grey at $0, green if positive (budget left / extra income), red if negative
+    // Colors mean the same thing in every category: green good, red bad, grey neutral.
+    // Only what counts as "good" changes.
+    // Savings/Investments: red if actual < expected (behind goal), grey if on target,
+    // green if actual > expected (goal exceeded).
+    // Other categories: grey at $0, green if positive (budget left / extra income), red if negative.
     let remainingColor = 'text-black/40';
     if (isSavings || isInvestments) {
       if (actual < sub.expected) {
@@ -69,7 +69,7 @@ const SubcategoryRow: React.FC<{
       } else if (actual === sub.expected) {
         remainingColor = 'text-black/40';
       } else {
-        remainingColor = 'text-gold';
+        remainingColor = 'text-green-accent';
       }
     } else {
       remainingColor = remaining > 0 ? 'text-green-accent' : remaining < 0 ? 'text-danger' : 'text-black/40';
