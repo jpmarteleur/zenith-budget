@@ -11,6 +11,20 @@ export const CATEGORY_COLORS: Record<CategoryName, { hex: string }> = {
   Debts:       { hex: '#9E3B32' }, // brick
 };
 
+// Categories whose third column counts UP toward the expected amount (money in),
+// rather than DOWN from it (budget left). Keep in sync with AMOUNT_COLUMN_HEADERS.
+export const GOAL_CATEGORIES: readonly CategoryName[] = ['Income', 'Savings', 'Investments'];
+
+// Header for the third column of a category card's subcategory table.
+export const AMOUNT_COLUMN_HEADERS: Record<CategoryName, string> = {
+  Income:      'Received',
+  Savings:     'Saved',
+  Investments: 'Invested',
+  Expenses:    'Remaining',
+  Bills:       'Remaining',
+  Debts:       'Remaining',
+};
+
 // Guarded category-color lookup: a legacy or unexpected category value returns a
 // neutral fallback instead of `undefined`, so a bad value can never crash the UI.
 const FALLBACK_CATEGORY_COLOR = { hex: '#888888' };

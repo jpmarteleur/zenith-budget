@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { CategoryName, Subcategory } from '../types';
-import { getCategoryColor, CARD_STYLE } from '../constants';
+import { getCategoryColor, CARD_STYLE, GOAL_CATEGORIES, AMOUNT_COLUMN_HEADERS } from '../constants';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 import EyeIcon from './icons/EyeIcon';
@@ -49,31 +49,21 @@ const SubcategoryRow: React.FC<{
         if (e.key === 'Escape') setIsEditing(false);
     };
 
-    const isIncome = categoryName === 'Income';
-    const isSavings = categoryName === 'Savings';
-    const isInvestments = categoryName === 'Investments';
-    // For income: remaining = actual - expected (positive means more income than expected)
-    // For expenses: remaining = expected - actual (positive means budget left)
-    // For savings/investments: remaining = actual (amount saved/invested)
-    const remaining = isSavings || isInvestments ? actual : isIncome ? actual - sub.expected : sub.expected - actual;
+    const isGoalCategory = GOAL_CATEGORIES.includes(categoryName);
 
-    // Colors mean the same thing in every category: green good, red bad, grey neutral.
-    // Only what counts as "good" changes.
-    // Savings/Investments: red if actual < expected (behind goal), grey if on target,
-    // green if actual > expected (goal exceeded).
-    // Other categories: grey at $0, green if positive (budget left / extra income), red if negative.
-    let remainingColor = 'text-black/40';
-    if (isSavings || isInvestments) {
-      if (actual < sub.expected) {
-        remainingColor = 'text-danger';
-      } else if (actual === sub.expected) {
-        remainingColor = 'text-black/40';
-      } else {
-        remainingColor = 'text-green-accent';
-      }
-    } else {
-      remainingColor = remaining > 0 ? 'text-green-accent' : remaining < 0 ? 'text-danger' : 'text-black/40';
-    }
+    // Goal categories show money in, counting up toward `expected`.
+    // Spend categories show budget left, counting down from `expected`.
+    const amount = isGoalCategory ? actual : sub.expected - actual;
+
+    // Compare in whole cents so the color always agrees with the rendered number —
+    // a float residue like 1.8e-15 must not read as "budget left" on a $0.00 row.
+    const cents = (n: number) => Math.round(n * 100);
+    const delta = isGoalCategory ? cents(actual) - cents(sub.expected) : cents(amount);
+
+    // Green good, red bad, grey neutral in every category; only what counts as
+    // "good" changes. Goal categories: red short of the goal, grey on target, green
+    // past it. Spend categories: green with budget left, grey at zero, red over.
+    const amountColor = delta > 0 ? 'text-green-accent' : delta < 0 ? 'text-danger' : 'text-black/40';
 
     return (
         <tr className={`hover:bg-green-mint/50 ${sub.excludeFromBudget ? 'opacity-50' : ''}`}>
@@ -115,10 +105,10 @@ const SubcategoryRow: React.FC<{
               )}
             </td>
 
-            {/* Remaining */}
+            {/* Remaining / Received / Saved / Invested */}
             <td className={`px-1 py-1 align-middle text-right border-l border-black/5 font-mono text-xs tabular-nums`}>
-              <span className={`${remainingColor} whitespace-nowrap`}>
-                {formatCurrency(remaining)}
+              <span className={`${amountColor} whitespace-nowrap`}>
+                {formatCurrency(amount)}
               </span>
             </td>
 
@@ -192,7 +182,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
                 <th className="px-1 py-1" title="Exclude from budget"></th>
                 <th className="px-1 py-1 text-left">Subcategory</th>
                 <th className="px-1 py-1 text-right border-l border-black/5">Expected</th>
-                <th className="px-1 py-1 text-right border-l border-black/5">{categoryName === 'Savings' ? 'Saved' : categoryName === 'Investments' ? 'Invested' : 'Remaining'}</th>
+                <th className="px-1 py-1 text-right border-l border-black/5">{AMOUNT_COLUMN_HEADERS[categoryName]}</th>
                 <th className="px-1 py-1"></th>
               </tr>
             </thead>
