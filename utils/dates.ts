@@ -17,6 +17,10 @@ export const toDateKey = (d: Date): string =>
 // Today's date, in the viewer's timezone.
 export const todayKey = (): string => toDateKey(new Date());
 
+// The month we are currently in, as "YYYY-MM". Slicing todayKey keeps this on the
+// same local-timezone footing as every other date in this file.
+export const currentMonthKey = (): string => todayKey().slice(0, 7);
+
 // Number of days in a "YYYY-MM" month. Day 0 of the *next* month is the last day
 // of this one, which handles leap years without a special case.
 export const daysInMonth = (month: string): number => {
@@ -32,6 +36,19 @@ export const monthDayToDate = (month: string, dayOfMonth: number): string => {
   const day = Math.min(Math.max(Math.trunc(dayOfMonth) || 1, 1), max);
   return `${month}-${String(day).padStart(2, '0')}`;
 };
+
+// Has a recurring rule's day arrived within `month`, as of `today`?
+//
+// Comparing the *resolved* date rather than the raw day number is what makes this
+// work for every month without a month-vs-today branch: a month that has fully
+// elapsed answers true for every rule, a month that hasn't started answers false for
+// all of them, and the current month splits day by day. It also inherits
+// monthDayToDate's clamping, so a day-31 rule comes due on the 30th in April.
+//
+// Lexicographic <= on "YYYY-MM-DD" is a correct chronological compare — the same
+// property availableMonths already relies on to sort.
+export const isDueOn = (month: string, dayOfMonth: number, today: string = todayKey()): boolean =>
+  monthDayToDate(month, dayOfMonth) <= today;
 
 // 1 -> "1st", 2 -> "2nd", 11 -> "11th", 31 -> "31st"
 export const ordinal = (n: number): string => {

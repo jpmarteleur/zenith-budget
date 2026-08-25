@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CARD_STYLE, BTN_GHOST, BTN_PRIMARY } from '../constants';
 import XIcon from './icons/XIcon';
 import type { RecurringRule, RecurringApplyItem, Subcategories } from '../types';
 import RecurringChecklist, { buildInitialChecklistState, checklistToItems } from './RecurringChecklist';
+import { isDueOn } from '../utils/dates';
 import type { ChecklistState } from './RecurringChecklist';
 
 interface ApplyRecurringModalProps {
@@ -23,12 +24,20 @@ const ApplyRecurringModal: React.FC<ApplyRecurringModalProps> = ({
   const [checklist, setChecklist] = useState<ChecklistState>(() => buildInitialChecklistState(rules));
   const [isApplying, setIsApplying] = useState(false);
 
+  // Only offer what has already come due. Rules dated later in the month arrive on their
+  // own date, so listing them here would invite adding them early — the exact thing the
+  // drip exists to prevent. A past month has every day behind it, so nothing is filtered.
+  const dueRules = useMemo(
+    () => rules.filter(r => isDueOn(month, r.day_of_month)),
+    [rules, month]
+  );
+
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
 
-  const items = checklistToItems(rules, checklist, appliedRuleIds);
+  const items = checklistToItems(dueRules, checklist, appliedRuleIds);
 
   const handleApply = async () => {
     if (items.length === 0 || isApplying) return;
@@ -61,7 +70,7 @@ const ApplyRecurringModal: React.FC<ApplyRecurringModalProps> = ({
         </p>
 
         <RecurringChecklist
-          rules={rules}
+          rules={dueRules}
           month={month}
           state={checklist}
           onStateChange={setChecklist}

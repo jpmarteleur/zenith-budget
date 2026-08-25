@@ -3,7 +3,7 @@ import type { Transaction, CategoryName, Subcategory, Subcategories, RecurringAp
 import { CATEGORY_NAMES } from '../types';
 import { GUEST_USER_ID } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
-import { monthDayToDate, resolveSourceMonth } from '../utils/dates';
+import { currentMonthKey, monthDayToDate, resolveSourceMonth } from '../utils/dates';
 import type { User } from '@supabase/supabase-js';
 
 interface MonthData {
@@ -50,10 +50,10 @@ const backfillSubcategories = (subs: Subcategories, items: RecurringApplyItem[])
 // --- GUEST DEMO DATA ---
 const getGuestInitialData = (): AllBudgetData => {
     const now = new Date();
-    const currentMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
     const previousMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-    const currentMonthKey = `${currentMonthDate.getFullYear()}-${String(currentMonthDate.getMonth() + 1).padStart(2, '0')}`;
+    // Named thisMonthKey rather than currentMonthKey so it doesn't shadow the imported helper.
+    const thisMonthKey = currentMonthKey();
     const previousMonthKey = `${previousMonthDate.getFullYear()}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
 
     const guestSubcategories = {
@@ -98,8 +98,11 @@ const getGuestInitialData = (): AllBudgetData => {
     ];
 
     const currentMonthTransactions: Transaction[] = [
-        { id: 'guest-trans-15', date: `${currentMonthKey}-01`, category: 'Bills', subcategory: 'Rent', amount: 2000, note: 'Monthly Rent' },
-        { id: 'guest-trans-16', date: `${currentMonthKey}-03`, category: 'Expenses', subcategory: 'Groceries', amount: 95.40, note: 'Safeway' },
+        // Stamped so the drip recognises Rent as already applied this month and doesn't
+        // add a second one. Internet (guest-rec-2, the 10th) is deliberately left unseeded
+        // so the demo actually shows a recurring transaction arriving on its date.
+        { id: 'guest-trans-15', date: `${thisMonthKey}-01`, category: 'Bills', subcategory: 'Rent', amount: 2000, note: 'Monthly Rent', recurring_id: 'guest-rec-1' },
+        { id: 'guest-trans-16', date: `${thisMonthKey}-03`, category: 'Expenses', subcategory: 'Groceries', amount: 95.40, note: 'Safeway' },
     ];
 
     return {
@@ -107,7 +110,7 @@ const getGuestInitialData = (): AllBudgetData => {
             transactions: previousMonthTransactions,
             subcategories: guestSubcategories,
         },
-        [currentMonthKey]: {
+        [thisMonthKey]: {
             transactions: currentMonthTransactions,
             subcategories: JSON.parse(JSON.stringify(guestSubcategories)),
         }
@@ -195,7 +198,7 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
 
             // If no budgets exist for a regular user, create the first one.
             if (budgets.length === 0) {
-                const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+                const currentMonth = currentMonthKey();
                 const { data: newBudgets } = await supabase.from('budgets').insert({
                     user_id: currentUser.id,
                     month: currentMonth,

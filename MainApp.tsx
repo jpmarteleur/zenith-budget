@@ -7,22 +7,30 @@ import SettingsPage from './pages/SettingsPage';
 import { useBudget } from './hooks/useBudget';
 import { useRecurring } from './hooks/useRecurring';
 import { useAuth } from './hooks/useAuth';
+import { useRecurringAutoApply } from './hooks/useRecurringAutoApply';
+import { currentMonthKey } from './utils/dates';
 
 export type Page = 'Budget' | 'Dashboard' | 'How To' | 'Settings';
 
-const getCurrentMonth = () => {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-};
-
 const MainApp: React.FC = () => {
   const [activePage, setActivePage] = useState<Page>('Budget');
-  const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonth());
+  const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthKey());
   const { currentUser } = useAuth();
   const budgetData = useBudget(selectedMonth, currentUser);
   // Hoisted here rather than into NavBar because the rules are needed in two places:
   // the New Month checklist and the Settings manager. One instance keeps them in sync.
   const recurringData = useRecurring(currentUser);
+
+  // Materialises recurring rules into the *current* month as each one's day arrives.
+  // Deliberately not tied to selectedMonth: browsing an old month must never write to it.
+  useRecurringAutoApply({
+    currentUser,
+    activeRules: recurringData.activeRules,
+    isRecurringLoaded: recurringData.isRecurringLoaded,
+    isBudgetLoaded: budgetData.isLoaded,
+    allData: budgetData.allData,
+    applyRecurringToMonth: budgetData.applyRecurringToMonth,
+  });
 
   // Lets the New Month modal preview which subcategories the new month will start
   // with, so the recurring checklist can flag any it would have to create.

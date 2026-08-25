@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { CARD_STYLE, BTN_GHOST, BTN_PRIMARY } from '../constants';
 import XIcon from './icons/XIcon';
 import type { RecurringRule, RecurringApplyItem, Subcategories } from '../types';
-import { resolveSourceMonth } from '../utils/dates';
+import { isDueOn, resolveSourceMonth } from '../utils/dates';
 import SelectField from './SelectField';
 import RecurringChecklist, { buildInitialChecklistState, checklistToItems } from './RecurringChecklist';
 import type { ChecklistState } from './RecurringChecklist';
@@ -38,6 +38,15 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ onClose, onCreate, month,
   const defaultSource = getPreviousMonthStr(selectedMonth);
   const [sourceMonth, setSourceMonth] = useState<string>(defaultSource);
 
+  // What the new month starts with: everything whose day has already arrived. Keyed on
+  // selectedMonth so it re-resolves as the user changes the picker. A month fully in the
+  // past keeps every rule (it has elapsed, so it should arrive complete); the current
+  // month gets only what's due so far; a future month gets none and fills in on its own.
+  const dueRules = useMemo(
+    () => activeRecurringRules.filter(r => isDueOn(selectedMonth, r.day_of_month)),
+    [activeRecurringRules, selectedMonth]
+  );
+
   // Lock body scroll while mounted
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -67,7 +76,7 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ onClose, onCreate, month,
       selectedMonth,
       creationOption,
       creationOption === 'copy' ? sourceMonth : undefined,
-      checklistToItems(activeRecurringRules, checklist),
+      checklistToItems(dueRules, checklist),
     );
     setIsCreating(false);
   };
@@ -158,16 +167,28 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({ onClose, onCreate, month,
         {activeRecurringRules.length > 0 && (
           <div className="mt-6">
             <h4 className="font-semibold text-black/87">Recurring transactions</h4>
-            <p className="text-sm text-black/60 mb-3">
-              These will be added to the new month. Untick anything you don't want, or adjust an amount.
-            </p>
-            <RecurringChecklist
-              rules={activeRecurringRules}
-              month={selectedMonth}
-              state={checklist}
-              onStateChange={setChecklist}
-              subcategories={targetSubcategories}
-            />
+            {dueRules.length === 0 ? (
+              // Every rule is dated later than today — which is the normal case for a month
+              // that hasn't started. Say so, rather than letting the checklist fall through
+              // to its "set some up in Settings" empty state when the user plainly has some.
+              <p className="text-sm text-black/60">
+                None are due yet in this month. They'll be added automatically as their dates arrive.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-black/60 mb-3">
+                  These are due already and will be added to the new month. Untick anything you
+                  don't want, or adjust an amount. Any dated later arrive on their own day.
+                </p>
+                <RecurringChecklist
+                  rules={dueRules}
+                  month={selectedMonth}
+                  state={checklist}
+                  onStateChange={setChecklist}
+                  subcategories={targetSubcategories}
+                />
+              </>
+            )}
           </div>
         )}
 

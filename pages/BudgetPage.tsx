@@ -10,6 +10,7 @@ import type { RecurringRule } from '../types';
 import { CARD_STYLE, BTN_PRIMARY, BTN_OUTLINE } from '../constants';
 import BudgetSummary from '../components/BudgetSummary';
 import PlusIcon from '../components/icons/PlusIcon';
+import { isDueOn } from '../utils/dates';
 
 type BudgetPageProps = ReturnType<typeof useBudget> & {
   selectedMonth: string;
@@ -46,7 +47,16 @@ const BudgetPage: React.FC<BudgetPageProps> = (props) => {
     () => new Set(transactions.map(t => t.recurring_id).filter(Boolean) as string[]),
     [transactions]
   );
-  const pendingRecurringCount = activeRecurringRules.filter(r => !appliedRuleIds.has(r.id)).length;
+  // Only nag about rules whose day has actually arrived. In the current month that keeps
+  // the banner quiet about things the drip will handle later; a past month has every day
+  // behind it, so it still counts everything and stays a manual escape hatch as before.
+  const pendingRules = useMemo(
+    () => activeRecurringRules.filter(
+      r => !appliedRuleIds.has(r.id) && isDueOn(selectedMonth, r.day_of_month)
+    ),
+    [activeRecurringRules, appliedRuleIds, selectedMonth]
+  );
+  const pendingRecurringCount = pendingRules.length;
 
   return (
     <div className="space-y-6">
