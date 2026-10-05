@@ -27,3 +27,6 @@ dist-ssr
 /prompts/
 /docs/project-doc.md
 /docs/approval-prompt-template.md
+
+# Local Claude context pointer
+/CLAUDE.md
