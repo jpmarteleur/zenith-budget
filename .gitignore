@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local agent guidance and development planning
+/prompts/
+/docs/project-doc.md
+/docs/approval-prompt-template.md
