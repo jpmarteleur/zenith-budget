@@ -2,7 +2,7 @@ import React, { useId, useMemo, useRef, useState } from 'react';
 import type { RecurringRule, RecurringApplyItem, Subcategories } from '../types';
 import type { CreateMonthResult } from '../hooks/useBudget';
 import { isDueOn, resolveSourceMonth } from '../utils/dates';
-import MonthDialog from './MonthDialog';
+import Dialog from './Dialog';
 import RecurringChecklist, { buildInitialChecklistState, checklistToItems } from './RecurringChecklist';
 import type { ChecklistState } from './RecurringChecklist';
 
@@ -89,7 +89,7 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({
   };
 
   return (
-    <MonthDialog
+    <Dialog
       title="New budget month"
       description="Choose a starting point for your monthly plan."
       onClose={onClose}
@@ -149,7 +149,7 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({
         </fieldset>
         {isCreating && <p role="status" className="sr-only">Saving your budget month. Please wait.</p>}
       </form>
-    </MonthDialog>
+    </Dialog>
   );
 };
 

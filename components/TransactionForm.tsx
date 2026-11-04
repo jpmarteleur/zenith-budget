@@ -14,7 +14,7 @@ import SelectField from './SelectField';
 interface TransactionFormProps {
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<{ error: string | null }>;
   subcategories: Subcategories;
-  addSubcategory: (category: CategoryName, name:string, expected?: number) => void;
+  addSubcategory: (category: CategoryName, name: string, expected?: number) => Promise<{ error: string | null }>;
   onClose: () => void;
   selectedMonth: string;
 }
@@ -110,7 +110,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
     if (existingSubcategory) {
       finalSubcategoryName = existingSubcategory.name;
     } else {
-      addSubcategory(manualCategory, finalSubcategoryName);
+      const result = await addSubcategory(manualCategory, finalSubcategoryName);
+      if (result.error) { setError(result.error); return; }
     }
 
     const { error: saveError } = await addTransaction({
@@ -170,7 +171,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subca
         setError(`Subcategory "${trimmedNewName}" already exists. Please choose it from the list.`);
         return;
       }
-      addSubcategory(parsedData.category, trimmedNewName, parseFloat(newSubExpected) || 0);
+      const result = await addSubcategory(parsedData.category, trimmedNewName, parseFloat(newSubExpected) || 0);
+      if (result.error) { setError(result.error); return; }
       subcategoryToSave = trimmedNewName;
     } else {
       if (!parsedData.subcategory) {

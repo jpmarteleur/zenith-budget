@@ -5,7 +5,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { monthDayToDate } from '../utils/dates';
 
 // Amounts are held as strings so a field can be transiently empty while the user
-// retypes it, matching how CategoryCard edits its expected amounts.
+// retypes it, so editing an amount does not force an immediate zero.
 export type ChecklistState = Record<string, { checked: boolean; amount: string }>;
 
 export const buildInitialChecklistState = (rules: RecurringRule[]): ChecklistState =>

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import NavBar from './components/NavBar';
 import BudgetPage from './pages/BudgetPage';
-import DashboardPage from './pages/DashboardPage';
 import HowToPage from './pages/HowToPage';
 import SettingsPage from './pages/SettingsPage';
 import { useBudget } from './hooks/useBudget';
@@ -10,7 +9,7 @@ import { useAuth } from './hooks/useAuth';
 import { useRecurringAutoApply } from './hooks/useRecurringAutoApply';
 import { currentMonthKey } from './utils/dates';
 
-export type Page = 'Budget' | 'Dashboard' | 'How To' | 'Settings';
+export type Page = 'Budget' | 'How To' | 'Settings';
 
 const MainApp: React.FC = () => {
   const [activePage, setActivePage] = useState<Page>('Budget');
@@ -27,7 +26,7 @@ const MainApp: React.FC = () => {
     currentUser,
     activeRules: recurringData.activeRules,
     isRecurringLoaded: recurringData.isRecurringLoaded,
-    isBudgetLoaded: budgetData.isLoaded,
+    isBudgetLoaded: budgetData.isLoaded && !budgetData.loadError,
     allData: budgetData.allData,
     applyRecurringToMonth: budgetData.applyRecurringToMonth,
   });
@@ -50,15 +49,13 @@ const MainApp: React.FC = () => {
   const renderPage = () => {
     switch (activePage) {
       case 'Budget':
-        return <BudgetPage {...budgetData} selectedMonth={selectedMonth} activeRecurringRules={recurringData.activeRules} />;
-      case 'Dashboard':
-        return <DashboardPage {...budgetData} selectedMonth={selectedMonth} />;
+        return <BudgetPage key={selectedMonth} {...budgetData} selectedMonth={selectedMonth} activeRecurringRules={recurringData.activeRules} />;
       case 'How To':
         return <HowToPage />;
       case 'Settings':
         return <SettingsPage {...recurringData} subcategories={budgetData.subcategories} />;
       default:
-        return <BudgetPage {...budgetData} selectedMonth={selectedMonth} activeRecurringRules={recurringData.activeRules} />;
+        return <BudgetPage key={selectedMonth} {...budgetData} selectedMonth={selectedMonth} activeRecurringRules={recurringData.activeRules} />;
     }
   };
 
@@ -74,7 +71,7 @@ const MainApp: React.FC = () => {
         deleteMonth={budgetData.deleteMonth}
         activeRecurringRules={recurringData.activeRules}
         subcategoriesByMonth={subcategoriesByMonth}
-        isBudgetLoaded={budgetData.isLoaded}
+        isBudgetLoaded={budgetData.isLoaded && !budgetData.loadError}
       />
       <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl px-4 pb-24 pt-6 focus:outline-none sm:px-6 lg:px-8">
         {renderPage()}

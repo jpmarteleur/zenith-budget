@@ -11,6 +11,10 @@ interface MonthData {
     subcategories: Subcategories;
 }
 
+export interface BudgetWriteResult {
+    error: string | null;
+}
+
 export interface CreateMonthResult {
     created: boolean;
     error: string | null;
@@ -33,7 +37,7 @@ const byDateDesc = (a: Transaction, b: Transaction) =>
 // adopt the existing subcategory's canonical casing on a hit, and create at
 // `expected: 0` on a miss. Creating at 0 never overwrites a budgeted amount — the
 // line simply didn't exist before. Without this, a generated transaction would count
-// toward its category total but have no row in CategoryCard to appear in.
+// toward its category total but have no subcategory row to appear in.
 //
 // Returns the items with their subcategory names canonicalised, plus whether
 // anything was created (so callers know if `subs` needs persisting).
@@ -126,6 +130,9 @@ const getGuestInitialData = (): AllBudgetData => {
 export const useBudget = (selectedMonth: string, currentUser: User | null) => {
     const [allData, setAllData] = useState<AllBudgetData>({});
     const [isLoaded, setIsLoaded] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [loadVersion, setLoadVersion] = useState(0);
+    const retryLoad = useCallback(() => setLoadVersion(version => version + 1), []);
 
     // Mirrors `allData`, but updated synchronously. React state does not change
     // until the next render, so two mutations fired in the same tick — adding a new
@@ -148,13 +155,14 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
 
     // --- Local Storage Functions for Guest ---
     const getGuestDataFromStorage = (): AllBudgetData | null => {
-        try {
-            const rawData = localStorage.getItem(LOCAL_STORAGE_KEY);
-            return rawData ? JSON.parse(rawData) : null;
-        } catch (error) {
-            console.error("Error reading guest data from localStorage", error);
-            return null;
-        }
+        const rawData = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (rawData === null) return null;
+        const data: unknown = JSON.parse(rawData);
+        if (!data || typeof data !== 'object' || Array.isArray(data) || Object.values(data).some(month =>
+            !month || typeof month !== 'object' || !Array.isArray(month.transactions)
+            || !month.subcategories || typeof month.subcategories !== 'object' || Array.isArray(month.subcategories)
+        )) throw new Error('The saved guest budget could not be read. It has not been replaced.');
+        return data as AllBudgetData;
     };
 
     const setGuestDataInStorage = useCallback((data: AllBudgetData) => {
@@ -169,117 +177,89 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
     // --- End Local Storage Functions ---
 
     useEffect(() => {
+        let cancelled = false;
         const fetchData = async () => {
-            if (!currentUser) {
-                commitAllData({});
-                setIsLoaded(true);
-                return;
-            };
-
             setIsLoaded(false);
-
-            // --- GUEST LOGIC ---
-            if (currentUser.id === GUEST_USER_ID) {
-                let guestData = getGuestDataFromStorage();
-                if (!guestData) {
-                    // First time guest, populate with demo data
-                    guestData = getGuestInitialData();
-                    setGuestDataInStorage(guestData);
+            setLoadError(null);
+            try {
+                if (!currentUser) {
+                    commitAllData({});
+                    return;
                 }
-                commitAllData(guestData);
-                setIsLoaded(true);
-                return;
-            }
+                if (currentUser.id === GUEST_USER_ID) {
+                    let guestData = getGuestDataFromStorage();
+                    if (!guestData) {
+                        guestData = getGuestInitialData();
+                        if (!setGuestDataInStorage(guestData)) {
+                            throw new Error('Could not save the starter budget on your device. Check browser storage and try again.');
+                        }
+                    }
+                    commitAllData(guestData);
+                    return;
+                }
 
-            // --- SUPABASE LOGIC (for logged-in users) ---
-            const { data: budgets, error: budgetError } = await supabase
-                .from('budgets')
-                .select('month, subcategories')
-                .eq('user_id', currentUser.id);
+                const { data: budgets, error: budgetError } = await supabase
+                    .from('budgets').select('month, subcategories').eq('user_id', currentUser.id);
+                if (cancelled) return;
+                if (budgetError || !budgets) throw new Error('Could not load your budgets. Please try again.');
 
-            if (budgetError) {
-                console.error("Error fetching budgets:", budgetError);
-                setIsLoaded(true);
-                return;
-            }
-
-            // If no budgets exist for a regular user, create the first one.
-            if (budgets.length === 0) {
-                const currentMonth = currentMonthKey();
-                const { data: newBudgets } = await supabase.from('budgets').insert({
-                    user_id: currentUser.id,
-                    month: currentMonth,
-                    subcategories: blankSubcategories,
-                }).select('month, subcategories');
-
-                if (newBudgets && newBudgets.length > 0) {
+                if (budgets.length === 0) {
+                    const { data: newBudgets, error: createError } = await supabase.from('budgets').insert({
+                        user_id: currentUser.id,
+                        month: currentMonthKey(),
+                        subcategories: blankSubcategories,
+                    }).select('month, subcategories');
+                    if (cancelled) return;
+                    if (createError || !newBudgets?.length) throw new Error('Could not create your first budget month. Please try again.');
                     budgets.push(newBudgets[0]);
                 }
-            }
+                const { data: transactions, error: transError } = await supabase
+                    .from('transactions').select('id, date, category, subcategory, amount, note, month, recurring_id')
+                    .eq('user_id', currentUser.id);
+                if (cancelled) return;
+                if (transError || !transactions) throw new Error('Could not load your transactions. Please try again.');
 
-            const { data: transactions, error: transError } = await supabase
-                .from('transactions')
-                .select('id, date, category, subcategory, amount, note, month, recurring_id')
-                .eq('user_id', currentUser.id);
-
-            if (transError) {
-                console.error("Error fetching transactions:", transError);
-                setIsLoaded(true);
-                return;
-            }
-
-            const newAllData: AllBudgetData = {};
-            for (const budget of budgets) {
-                newAllData[budget.month] = {
-                    subcategories: budget.subcategories,
-                    transactions: [],
-                };
-            }
-            for (const transaction of transactions) {
-                if (newAllData[transaction.month]) {
-                    newAllData[transaction.month].transactions.push(transaction as Transaction);
+                const newAllData: AllBudgetData = {};
+                for (const budget of budgets) {
+                    newAllData[budget.month] = { subcategories: budget.subcategories, transactions: [] };
                 }
+                for (const transaction of transactions) {
+                    if (newAllData[transaction.month]) newAllData[transaction.month].transactions.push(transaction as Transaction);
+                }
+                for (const month in newAllData) newAllData[month].transactions.sort(byDateDesc);
+                commitAllData(newAllData);
+            } catch (error) {
+                if (!cancelled) setLoadError(error instanceof Error ? error.message : 'Could not load your budget. Please try again.');
+            } finally {
+                if (!cancelled) setIsLoaded(true);
             }
-
-            for (const month in newAllData) {
-                newAllData[month].transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            }
-
-            commitAllData(newAllData);
-            setIsLoaded(true);
         };
-
-        fetchData();
-    }, [currentUser, commitAllData, setGuestDataInStorage]);
+        void fetchData();
+        return () => { cancelled = true; };
+    }, [currentUser, commitAllData, setGuestDataInStorage, loadVersion]);
 
     const currentMonthData = useMemo(() => allData[selectedMonth] || { transactions: [], subcategories: blankSubcategories }, [allData, selectedMonth]);
 
-    const updateMonthData = useCallback(async (data: Partial<MonthData>) => {
-        if (!currentUser) return;
-
-        const prevAllData = allDataRef.current;
-        const newAllData = commitAllData(prev => ({
-            ...prev,
-            [selectedMonth]: {
-                ...(prev[selectedMonth] || { transactions: [], subcategories: blankSubcategories }),
-                ...data,
-            }
-        }));
-
+    const persistSubcategories = useCallback(async (subcategories: Subcategories): Promise<BudgetWriteResult> => {
+        const previous = allDataRef.current[selectedMonth];
+        if (!currentUser || !previous) return { error: 'This budget month is not available. Reload before editing.' };
+        const next = { ...allDataRef.current, [selectedMonth]: { ...previous, subcategories } };
         if (currentUser.id === GUEST_USER_ID) {
-            setGuestDataInStorage(newAllData);
-            return;
+            if (!setGuestDataInStorage(next)) return { error: 'Could not save on your device. Check browser storage and try again.' };
+            commitAllData(next);
+            return { error: null };
         }
-
-        // Persist to Supabase
-        if (data.subcategories) {
-            const { error } = await supabase.from('budgets')
-                .update({ subcategories: data.subcategories })
-                .match({ user_id: currentUser.id, month: selectedMonth });
-            if (error) {
-                console.error("Error updating subcategories:", error);
-                commitAllData(prevAllData); // Revert on error
+        try {
+            const { data, error } = await supabase.from('budgets').update({ subcategories })
+                .match({ user_id: currentUser.id, month: selectedMonth }).select('month');
+            if (error || data?.length !== 1 || data[0].month !== selectedMonth) {
+                return { error: 'Could not save this plan. Your budget may have changed or you may no longer have access. Reload or try again.' };
             }
+            if (!allDataRef.current[selectedMonth]) return { error: 'This month is no longer available. Reload to check its saved plan.' };
+            commitAllData(current => ({ ...current, [selectedMonth]: { ...current[selectedMonth], subcategories } }));
+            return { error: null };
+        } catch {
+            return { error: 'Could not confirm the plan was saved. Reload to check before trying again.' };
         }
     }, [selectedMonth, currentUser, commitAllData, setGuestDataInStorage]);
 
@@ -372,37 +352,34 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
     }, [selectedMonth, currentUser, commitTransactions, setGuestDataInStorage]);
 
     const addSubcategory = useCallback(async (category: CategoryName, name: string, expected = 0) => {
-        const newSub: Subcategory = { id: crypto.randomUUID(), name, expected };
-        const currentSubs = currentMonthData.subcategories[category] || [];
-        const newSubcategories = { ...currentMonthData.subcategories, [category]: [...currentSubs, newSub] };
-        await updateMonthData({ subcategories: newSubcategories });
-        return newSub;
-    }, [currentMonthData.subcategories, updateMonthData]);
+        if (!name.trim() || !Number.isFinite(expected)) return { error: 'Enter a name and a valid planned amount.', subcategory: null };
+        const subs = allDataRef.current[selectedMonth]?.subcategories;
+        if (!subs) return { error: 'This budget month is not available. Reload before editing.', subcategory: null };
+        const subcategory: Subcategory = { id: crypto.randomUUID(), name: name.trim(), expected };
+        const result = await persistSubcategories({ ...subs, [category]: [...(subs[category] || []), subcategory] });
+        return { ...result, subcategory: result.error ? null : subcategory };
+    }, [selectedMonth, persistSubcategories]);
 
-    const deleteSubcategory = useCallback(async (category: CategoryName, id: string) => {
-        const newSubcategories = { ...currentMonthData.subcategories, [category]: currentMonthData.subcategories[category].filter(sub => sub.id !== id) };
-        await updateMonthData({ subcategories: newSubcategories });
-    }, [currentMonthData.subcategories, updateMonthData]);
+    const deleteSubcategory = useCallback(async (category: CategoryName, id: string): Promise<BudgetWriteResult> => {
+        const subs = allDataRef.current[selectedMonth]?.subcategories;
+        if (!subs?.[category]?.some(sub => sub.id === id)) return { error: 'This subcategory is no longer available. Close the editor and reload.' };
+        return persistSubcategories({ ...subs, [category]: subs[category].filter(sub => sub.id !== id) });
+    }, [selectedMonth, persistSubcategories]);
 
     const updateSubcategory = useCallback(async (category: CategoryName, id: string, newName: string) => {
-        const newSubcategories = { ...currentMonthData.subcategories, [category]: currentMonthData.subcategories[category].map(sub => sub.id === id ? { ...sub, name: newName } : sub) };
-        await updateMonthData({ subcategories: newSubcategories });
-    }, [currentMonthData.subcategories, updateMonthData]);
+        const subs = allDataRef.current[selectedMonth]?.subcategories;
+        if (!subs?.[category]?.some(sub => sub.id === id)) return { error: 'This subcategory is no longer available.' };
+        return persistSubcategories({ ...subs, [category]: subs[category].map(sub => sub.id === id ? { ...sub, name: newName } : sub) });
+    }, [selectedMonth, persistSubcategories]);
 
-    const updateSubcategoryExpected = useCallback(async (category: CategoryName, id: string, amount: number) => {
-        const newSubcategories = { ...currentMonthData.subcategories, [category]: currentMonthData.subcategories[category].map(sub => sub.id === id ? { ...sub, expected: amount } : sub) };
-        await updateMonthData({ subcategories: newSubcategories });
-    }, [currentMonthData.subcategories, updateMonthData]);
-
-    const toggleSubcategoryExcludeFromBudget = useCallback(async (category: CategoryName, id: string) => {
-        const newSubcategories = {
-            ...currentMonthData.subcategories,
-            [category]: currentMonthData.subcategories[category].map(sub =>
-                sub.id === id ? { ...sub, excludeFromBudget: !sub.excludeFromBudget } : sub
-            )
-        };
-        await updateMonthData({ subcategories: newSubcategories });
-    }, [currentMonthData.subcategories, updateMonthData]);
+    const saveSubcategoryPlan = useCallback(async (
+        category: CategoryName, id: string, expected: number, excludeFromBudget: boolean
+    ): Promise<BudgetWriteResult> => {
+        if (!Number.isFinite(expected)) return { error: 'Enter a valid planned amount.' };
+        const subs = allDataRef.current[selectedMonth]?.subcategories;
+        if (!subs?.[category]?.some(sub => sub.id === id)) return { error: 'This subcategory is no longer available. Close the editor and reload.' };
+        return persistSubcategories({ ...subs, [category]: subs[category].map(sub => sub.id === id ? { ...sub, expected, excludeFromBudget } : sub) });
+    }, [selectedMonth, persistSubcategories]);
 
     const actualAmounts = useMemo(() => {
         return currentMonthData.transactions.reduce((acc, transaction) => {
@@ -651,6 +628,8 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
 
     return {
         isLoaded,
+        loadError,
+        retryLoad,
         transactions: currentMonthData.transactions,
         addTransaction,
         updateTransaction,
@@ -659,8 +638,7 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
         addSubcategory,
         deleteSubcategory,
         updateSubcategory,
-        updateSubcategoryExpected,
-        toggleSubcategoryExcludeFromBudget,
+        saveSubcategoryPlan,
         actualAmounts,
         expectedAmounts,
         actualsBySubcategory,
@@ -670,6 +648,6 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
         createNewMonth,
         applyRecurringToMonth,
         deleteMonth,
-        allData, // Expose all data for dashboard charts
+        allData, // Shared with month setup and automatic recurring application
     };
 };

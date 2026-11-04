@@ -2,7 +2,7 @@ import React, { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import XIcon from './icons/XIcon';
 
-interface MonthDialogProps {
+interface DialogProps {
   title: string;
   description: string;
   onClose: () => void;
@@ -12,7 +12,7 @@ interface MonthDialogProps {
   returnFocusRef?: React.RefObject<HTMLElement | null>;
 }
 
-const MonthDialog: React.FC<MonthDialogProps> = ({
+const Dialog: React.FC<DialogProps> = ({
   title, description, onClose, busy = false, children, footer, returnFocusRef,
 }) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -98,4 +98,4 @@ const MonthDialog: React.FC<MonthDialogProps> = ({
   );
 };
 
-export default MonthDialog;
+export default Dialog;

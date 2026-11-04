@@ -1,164 +1,139 @@
-import React, { useState, useMemo } from 'react';
+import React, { useId, useMemo, useRef, useState } from 'react';
 import type { useBudget } from '../hooks/useBudget';
-import BudgetIndicator from '../components/BudgetIndicator';
-import CategoryCard from '../components/CategoryCard';
 import TransactionForm from '../components/TransactionForm';
 import TransactionTable from '../components/TransactionTable';
 import ApplyRecurringModal from '../components/ApplyRecurringModal';
+import AllocationEditor from '../components/AllocationEditor';
+import BudgetCategorySection from '../components/BudgetCategorySection';
 import { CATEGORY_NAMES } from '../types';
-import type { RecurringRule } from '../types';
+import type { CategoryName, RecurringRule, Subcategory } from '../types';
 import { CARD_STYLE, BTN_PRIMARY, BTN_OUTLINE } from '../constants';
-import BudgetSummary from '../components/BudgetSummary';
 import PlusIcon from '../components/icons/PlusIcon';
+import CheckIcon from '../components/icons/CheckIcon';
 import { isDueOn } from '../utils/dates';
+import { planStatus } from '../utils/budget-presentation';
+import { useSettings } from '../contexts/SettingsContext';
 
-type BudgetPageProps = ReturnType<typeof useBudget> & {
-  selectedMonth: string;
-  activeRecurringRules: RecurringRule[];
-};
+const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-house-green';
+type BudgetPageProps = ReturnType<typeof useBudget> & { selectedMonth: string; activeRecurringRules: RecurringRule[] };
 
-const BudgetPage: React.FC<BudgetPageProps> = (props) => {
+const BudgetPage: React.FC<BudgetPageProps> = props => {
   const {
-    remainingToBudget,
-    remainingToSpend,
-    expectedAmounts,
-    actualAmounts,
-    actualsBySubcategory,
-    subcategories,
-    addSubcategory,
-    deleteSubcategory,
-    updateSubcategoryExpected,
-    toggleSubcategoryExcludeFromBudget,
-    transactions,
-    addTransaction,
-    updateTransaction,
-    deleteTransaction,
-    selectedMonth,
-    activeRecurringRules,
-    applyRecurringToMonth,
+    remainingToBudget, remainingToSpend, expectedAmounts, actualAmounts, actualsBySubcategory,
+    subcategories, addSubcategory, deleteSubcategory, saveSubcategoryPlan,
+    transactions, addTransaction, updateTransaction, deleteTransaction, selectedMonth,
+    activeRecurringRules, applyRecurringToMonth, isLoaded, loadError, retryLoad, availableMonths,
   } = props;
-
+  const { formatCurrency } = useSettings();
+  const id = useId();
+  const [view, setView] = useState<'track' | 'plan'>('track');
+  const [expanded, setExpanded] = useState<Set<CategoryName>>(() => new Set(['Expenses']));
+  const [editor, setEditor] = useState<{ category: CategoryName; subcategory?: Subcategory } | null>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const categoryHeaders = useRef<Partial<Record<CategoryName, HTMLButtonElement | null>>>({});
+  const tabRefs = useRef<Partial<Record<'track' | 'plan', HTMLButtonElement | null>>>({});
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isApplyRecurringVisible, setIsApplyRecurringVisible] = useState(false);
+  const appliedRuleIds = useMemo(() => new Set(transactions.map(t => t.recurring_id).filter(Boolean) as string[]), [transactions]);
+  const pendingRules = useMemo(() => activeRecurringRules.filter(rule => !appliedRuleIds.has(rule.id) && isDueOn(selectedMonth, rule.day_of_month)), [activeRecurringRules, appliedRuleIds, selectedMonth]);
+  const status = planStatus(remainingToBudget);
+  const statusText = status === 'allocated' ? 'Fully allocated' : status === 'available' ? 'Left to allocate' : 'Overallocated';
+  const openEditor = (category: CategoryName, subcategory?: Subcategory) => {
+    returnFocusRef.current = categoryHeaders.current[category] || null;
+    setEditor({ category, subcategory });
+  };
 
-  // Rules whose transaction is already in this month, matched by the id stamped on
-  // the transaction when it was generated.
-  const appliedRuleIds = useMemo(
-    () => new Set(transactions.map(t => t.recurring_id).filter(Boolean) as string[]),
-    [transactions]
-  );
-  // Only nag about rules whose day has actually arrived. In the current month that keeps
-  // the banner quiet about things the drip will handle later; a past month has every day
-  // behind it, so it still counts everything and stays a manual escape hatch as before.
-  const pendingRules = useMemo(
-    () => activeRecurringRules.filter(
-      r => !appliedRuleIds.has(r.id) && isDueOn(selectedMonth, r.day_of_month)
-    ),
-    [activeRecurringRules, appliedRuleIds, selectedMonth]
-  );
-  const pendingRecurringCount = pendingRules.length;
+  if (!isLoaded) return <div role="status" className="mx-auto max-w-4xl rounded-2xl bg-white p-6 text-sm text-black/60">Loading your budget…</div>;
+  if (loadError) return <div role="alert" className="mx-auto max-w-4xl rounded-2xl border border-danger/30 bg-white p-6">
+    <h2 className="text-lg font-semibold text-house-green">Your budget could not be loaded</h2>
+    <p className="mt-2 text-sm text-black/70">{loadError}</p>
+    <button type="button" onClick={retryLoad} className={`mt-4 min-h-11 rounded-xl bg-house-green px-5 text-sm font-semibold text-white ${FOCUS}`}>Try again</button>
+  </div>;
+  if (!availableMonths.includes(selectedMonth)) return <section className="mx-auto max-w-4xl rounded-2xl bg-white p-6">
+    <h2 className="text-lg font-semibold text-house-green">No budget for this month</h2>
+    <p className="mt-2 text-sm text-black/60">Use New month above to create your monthly plan.</p>
+  </section>;
 
   return (
-    <div className="space-y-6">
-      {/* Floating Action Button */}
-      {!isFormVisible && (
-        <button
-          type="button"
-          onClick={() => setIsFormVisible(true)}
-          aria-label="Log Transaction"
-          className="fixed bottom-6 right-4 md:bottom-8 md:right-8 bg-green-accent hover:bg-sb-green text-white w-14 h-14 rounded-full flex items-center justify-center shadow-frap transition-all duration-200 active:scale-95 z-50"
-        >
-          <PlusIcon className="w-6 h-6" />
-        </button>
-      )}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <BudgetIndicator title="Remaining to Budget" amount={remainingToBudget} />
-        <BudgetIndicator title="Remaining to Spend" amount={remainingToSpend} />
+    <div className="mx-auto max-w-4xl space-y-6">
+      <div role="tablist" aria-label="Budget view" className="grid grid-cols-2 gap-1 rounded-xl bg-black/5 p-1">
+        {(['track', 'plan'] as const).map(tab => <button key={tab} ref={element => { tabRefs.current[tab] = element; }} type="button" role="tab" id={`${id}-${tab}`} aria-selected={view === tab} aria-controls={`${id}-panel`} tabIndex={view === tab ? 0 : -1} onClick={() => setView(tab)} onKeyDown={event => {
+          if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          const next = event.key === 'Home' ? 'track' : event.key === 'End' ? 'plan' : tab === 'track' ? 'plan' : 'track';
+          setView(next); tabRefs.current[next]?.focus();
+        }} className={`min-h-11 rounded-lg text-sm font-semibold transition-colors ${FOCUS} ${view === tab ? 'bg-green-mint text-house-green' : 'text-black/60 hover:bg-white/60'}`}>{tab === 'track' ? 'Track' : 'Plan'}</button>)}
       </div>
-
-      <BudgetSummary expectedAmounts={expectedAmounts} actualAmounts={actualAmounts} />
-
-      {transactions.length === 0 && (
-        <div className={`${CARD_STYLE} p-6 text-center`}>
-          <h4 className="text-lg font-semibold text-black/87">Your budget is ready!</h4>
-          <p className="text-black/60 mt-1 mb-4">The next step is to log your income and expenses.</p>
-          <button
-            onClick={() => setIsFormVisible(true)}
-            className={`${BTN_PRIMARY} space-x-2 mx-auto`}
-          >
-            <PlusIcon className="w-5 h-5" />
-            <span>Log Your First Transaction</span>
-          </button>
+      <div id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-${view}`} className="rounded-2xl border border-black/10 bg-white px-4 sm:px-6">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-black/10 py-5 sm:py-6">
+          <h2 className="text-xl font-semibold tracking-tight text-house-green">{view === 'track' ? 'This month' : 'Monthly plan'}</h2>
+          <div className="text-right">
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${status === 'overallocated' ? 'bg-danger/5 text-danger' : 'bg-green-mint/50 text-house-green'}`}>{status === 'allocated' && <span aria-hidden="true">
+              <CheckIcon className="h-4 w-4" />
+            </span>}{statusText}</span>
+            <p className="mt-1 text-sm font-medium tabular-nums text-black/70">{formatCurrency(status === 'allocated' ? 0 : Math.abs(remainingToBudget))}{status === 'available' ? ' to assign' : status === 'overallocated' ? ' over plan' : ' left to allocate'}</p>
+          </div>
         </div>
-      )}
-
-      <div>
-        <h3 className="text-xl font-bold text-black/87 mb-4">Detailed Budget</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {CATEGORY_NAMES.map((catName) => (
-            <CategoryCard
-              key={catName}
-              categoryName={catName}
-              expected={expectedAmounts[catName] || 0}
-              actual={actualAmounts[catName] || 0}
-              subcategories={subcategories[catName] || []}
-              actualsBySubcategory={actualsBySubcategory[catName] || {}}
-              onAddSubcategory={addSubcategory}
-              onDeleteSubcategory={deleteSubcategory}
-              onUpdateSubcategoryExpected={updateSubcategoryExpected}
-              onToggleExcludeFromBudget={toggleSubcategoryExcludeFromBudget}
-            />
-          ))}
-        </div>
-      </div>
-      
-      {pendingRecurringCount > 0 && (
-        <div className={`${CARD_STYLE} p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3`}>
-          <p className="text-sm text-black/70">
-            {pendingRecurringCount === 1
-              ? "1 recurring transaction hasn't been added to this month yet."
-              : `${pendingRecurringCount} recurring transactions haven't been added to this month yet.`}
-          </p>
-          <button
-            onClick={() => setIsApplyRecurringVisible(true)}
-            className={`${BTN_OUTLINE} flex-shrink-0`}
-          >
-            Apply recurring ({pendingRecurringCount})
-          </button>
-        </div>
-      )}
-
-      <TransactionTable
-        transactions={transactions}
-        updateTransaction={updateTransaction}
-        deleteTransaction={deleteTransaction}
-        subcategories={subcategories}
-        onLogTransactionClick={() => setIsFormVisible(true)}
-      />
-
-      {isFormVisible && (
-          <TransactionForm 
-            addTransaction={addTransaction} 
-            subcategories={subcategories}
-            addSubcategory={addSubcategory}
-            onClose={() => setIsFormVisible(false)}
-            selectedMonth={selectedMonth}
+        {CATEGORY_NAMES.map(category => (
+          <BudgetCategorySection
+            key={category}
+            category={category}
+            expected={expectedAmounts[category] || 0}
+            actual={actualAmounts[category] || 0}
+            subcategories={subcategories[category] || []}
+            actuals={actualsBySubcategory[category] || {}}
+            view={view}
+            expanded={expanded.has(category)}
+            headerRef={element => { categoryHeaders.current[category] = element; }}
+            onToggle={() => setExpanded(current => {
+              const next = new Set(current);
+              if (next.has(category)) next.delete(category);
+              else next.add(category);
+              return next;
+            })}
+            onEdit={sub => openEditor(category, sub)}
+            onAdd={() => openEditor(category)}
           />
-      )}
-
-      {isApplyRecurringVisible && (
-        <ApplyRecurringModal
-          onClose={() => setIsApplyRecurringVisible(false)}
-          onApply={items => applyRecurringToMonth(selectedMonth, items)}
-          rules={activeRecurringRules}
-          month={selectedMonth}
-          subcategories={subcategories}
-          appliedRuleIds={appliedRuleIds}
+        ))}
+        <div className="flex flex-wrap items-start justify-between gap-3 border-t border-black/10 py-5">
+          <div>
+            <h3 className="text-sm font-medium text-black/87">{view === 'track' ? 'Recorded cash flow' : 'Planned totals'}</h3>
+            <p className="mt-1 text-xs leading-relaxed text-black/60">{view === 'track' ? `Income ${formatCurrency(actualAmounts.Income || 0)} · Outflows ${formatCurrency((actualAmounts.Income || 0) - remainingToSpend)}` : `Income ${formatCurrency(expectedAmounts.Income)} · Allocated ${formatCurrency(expectedAmounts.Income - remainingToBudget)}`}</p>
+          </div>
+          {view === 'track' && <p className="text-lg font-semibold tabular-nums text-house-green">{formatCurrency(remainingToSpend)}</p>}
+        </div>
+      </div>
+      {transactions.length === 0 && <div className={`${CARD_STYLE} p-6 text-center`}>
+        <h3 className="text-lg font-semibold text-black/87">Your budget is ready!</h3>
+        <p className="mb-4 mt-1 text-sm text-black/60">The next step is to log your income and expenses.</p>
+        <button type="button" onClick={() => setIsFormVisible(true)} className={`${BTN_PRIMARY} mx-auto gap-2`}>
+          <PlusIcon className="h-5 w-5" />
+          <span>Log Your First Transaction</span>
+        </button>
+      </div>}
+      {pendingRules.length > 0 && <div className={`${CARD_STYLE} flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between`}>
+        <p className="text-sm text-black/70">{pendingRules.length === 1 ? "1 recurring transaction hasn't been added to this month yet." : `${pendingRules.length} recurring transactions haven't been added to this month yet.`}</p>
+        <button type="button" onClick={() => setIsApplyRecurringVisible(true)} className={`${BTN_OUTLINE} shrink-0`}>Apply recurring ({pendingRules.length})</button>
+      </div>}
+      <TransactionTable transactions={transactions} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} subcategories={subcategories} onLogTransactionClick={() => setIsFormVisible(true)} />
+      {!isFormVisible && <button type="button" onClick={() => setIsFormVisible(true)} aria-label="Log Transaction" className={`fixed bottom-6 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-green-accent text-white shadow-frap transition-colors hover:bg-sb-green md:bottom-8 md:right-8 ${FOCUS}`}>
+        <PlusIcon className="h-6 w-6" />
+      </button>}
+      {isFormVisible && <TransactionForm addTransaction={addTransaction} subcategories={subcategories} addSubcategory={addSubcategory} onClose={() => setIsFormVisible(false)} selectedMonth={selectedMonth} />}
+      {isApplyRecurringVisible && <ApplyRecurringModal onClose={() => setIsApplyRecurringVisible(false)} onApply={items => applyRecurringToMonth(selectedMonth, items)} rules={activeRecurringRules} month={selectedMonth} subcategories={subcategories} appliedRuleIds={appliedRuleIds} />}
+      {editor && (
+        <AllocationEditor
+          category={editor.category}
+          subcategory={editor.subcategory}
+          balance={remainingToBudget}
+          returnFocusRef={returnFocusRef}
+          onClose={() => setEditor(null)}
+          onSave={(expected, excluded) => saveSubcategoryPlan(editor.category, editor.subcategory!.id, expected, excluded)}
+          onAdd={(name, expected) => addSubcategory(editor.category, name, expected)}
+          onDelete={() => deleteSubcategory(editor.category, editor.subcategory!.id)}
         />
       )}
-
     </div>
   );
 };
-
 export default BudgetPage;

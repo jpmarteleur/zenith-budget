@@ -6,7 +6,7 @@ A personalized budgeting application built with modern web technologies, designe
 
 ## Objective
 
-This project was created to build a full-stack application that addresses my personal budgeting needs. It combines intuitive transaction tracking, AI-powered expense parsing, visual analytics, and customizable categories into a single, cohesive tool.
+This project was created to build a full-stack application that addresses my personal budgeting needs. It combines intuitive transaction tracking, AI-powered expense parsing, monthly planning, and customizable subcategories into a single, cohesive tool.
 
 ---
 
@@ -22,10 +22,11 @@ The application is built with:
 - **Frontend**: React + TypeScript + Vite for a fast, type-safe UI
 - **Backend**: Supabase for authentication and database management
 - **AI Integration**: Google Gemini API for intelligent transaction parsing
-- **Visualization**: Recharts for interactive budget charts and analytics
-- **Styling**: Custom CSS with a futuristic design system
+- **Styling**: Tailwind utilities with Inter/Lora typography and category colors
 
-Users can create monthly budgets, track transactions across customizable categories, view spending patterns through interactive charts, and leverage AI to quickly add expenses with natural language input.
+Users create monthly budgets and switch between **Track**, for recorded activity and cash flow, and **Plan**, for expected income and allocations. Expand any of the six categories to see its subcategories. Plan supports adding, editing, deleting, and excluding subcategories from totals while retaining transaction history.
+
+Use **New month** to copy another month’s plan, reset planned amounts while keeping subcategories, or start from scratch. Copying does not copy historical transactions or overwrite an existing month. Transaction entry supports manual input and AI-assisted parsing with an editable review before saving. Settings contains currency formatting and recurring transaction rules. Currency selection does not convert amounts between currencies.
 
 ---
 
@@ -39,7 +40,6 @@ If you encounter any bugs or have feature suggestions, please open an issue or s
 
 ## Future Plans
 
-- Add recurring transaction support
 - Implement budget forecasting and predictions
 - Build year-over-year comparison views
 
@@ -63,13 +63,14 @@ Throughout this project I built comprehensive full-stack development skills:
 
 ## Key Features
 
-- **Visual Analytics**: Interactive pie charts and spending trend visualizations
+- **Track and Plan**: Recorded activity, category progress, expected income, and monthly allocations
 - **AI Transaction Parsing**: Natural language expense input powered by Google Gemini
 - **Multi-Month Management**: Track budgets across different time periods
-- **Customizable Categories**: Create and manage personalized spending categories
+- **Customizable Subcategories**: Manage your own items within six budget categories
+- **Recurring Transactions**: Manage rules in Settings and review due items during month setup
 - **Secure Authentication**: User accounts with Supabase Auth
 - **Responsive Design**: Works seamlessly on desktop and mobile devices
-- **Real-time Updates**: Instant data synchronization across sessions
+- **Guest Mode**: Try the app with local data kept separate from signed-in budgets
 
 ---
 

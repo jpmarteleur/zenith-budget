@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import type { Page } from '../MainApp';
 import type { useBudget } from '../hooks/useBudget';
 import NewMonthModal from './NewMonthModal';
-import MonthDialog from './MonthDialog';
+import Dialog from './Dialog';
 import ChevronDownIcon from './icons/ChevronDownIcon';
 import TrashIcon from './icons/TrashIcon';
 import LogoutIcon from './icons/LogoutIcon';
@@ -51,10 +51,10 @@ const NavBar: React.FC<NavBarProps> = ({
   const [accountError, setAccountError] = useState<string | null>(null);
   const monthSelectRef = useRef<HTMLSelectElement>(null);
   const { currentUser, logout } = useAuth();
-  const pages: Page[] = ['Budget', 'Dashboard', 'How To', 'Settings'];
+  const pages: Page[] = ['Budget', 'How To', 'Settings'];
   const months = [...availableMonths].sort();
   const monthIndex = months.indexOf(selectedMonth);
-  const showMonths = activePage === 'Budget' || activePage === 'Dashboard';
+  const showMonths = activePage === 'Budget';
   const nextMonth = getNextMonth(months[months.length - 1] || selectedMonth);
   const accountLabel = currentUser?.id === GUEST_USER_ID ? 'Guest session' : currentUser?.email;
 
@@ -157,7 +157,7 @@ const NavBar: React.FC<NavBarProps> = ({
         />
       )}
       {deleteTarget && (
-        <MonthDialog title="Delete budget month?" description={formatMonth(deleteTarget)} onClose={() => setDeleteTarget(null)} busy={isDeleting} returnFocusRef={monthSelectRef} footer={
+        <Dialog title="Delete budget month?" description={formatMonth(deleteTarget)} onClose={() => setDeleteTarget(null)} busy={isDeleting} returnFocusRef={monthSelectRef} footer={
           <div className="flex flex-col-reverse gap-2 sm:flex-row">
             <button type="button" onClick={() => setDeleteTarget(null)} disabled={isDeleting} className={`${SECONDARY} flex-1`}>Keep month</button>
             <button type="button" onClick={handleDelete} disabled={isDeleting} className={`min-h-11 flex-1 rounded-xl bg-danger px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 ${FOCUS}`}>{isDeleting ? 'Deleting…' : 'Delete month'}</button>
@@ -165,7 +165,7 @@ const NavBar: React.FC<NavBarProps> = ({
         }>
           <p className="text-sm leading-relaxed text-black/70">This permanently removes this month's budget and its transactions. This action cannot be undone.</p>
           {deleteError && <p role="alert" className="mt-4 rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm text-danger">{deleteError}</p>}
-        </MonthDialog>
+        </Dialog>
       )}
     </>
   );
