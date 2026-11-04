@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import type { Page } from '../MainApp';
-// NavBar uses the nav-specific shadow token directly (see index.html boxShadow.nav)
+import type { useBudget } from '../hooks/useBudget';
 import NewMonthModal from './NewMonthModal';
-import ConfirmationModal from './ConfirmationModal';
+import MonthDialog from './MonthDialog';
 import ChevronDownIcon from './icons/ChevronDownIcon';
 import TrashIcon from './icons/TrashIcon';
 import LogoutIcon from './icons/LogoutIcon';
+import PlusIcon from './icons/PlusIcon';
 import { useAuth } from '../hooks/useAuth';
-import type { RecurringRule, RecurringApplyItem, Subcategories } from '../types';
-
-type CreationOption = 'copy' | 'blank' | 'scratch';
+import { GUEST_USER_ID } from '../contexts/AuthContext';
+import type { RecurringRule, Subcategories } from '../types';
 
 interface NavBarProps {
   activePage: Page;
@@ -17,153 +17,156 @@ interface NavBarProps {
   selectedMonth: string;
   setSelectedMonth: (month: string) => void;
   availableMonths: string[];
-  createNewMonth: (month: string, option: CreationOption, sourceMonth?: string, recurringToApply?: RecurringApplyItem[]) => Promise<void>;
-  deleteMonth: (month: string) => void;
+  createNewMonth: ReturnType<typeof useBudget>['createNewMonth'];
+  deleteMonth: ReturnType<typeof useBudget>['deleteMonth'];
   activeRecurringRules: RecurringRule[];
   subcategoriesByMonth: Record<string, Subcategories>;
+  isBudgetLoaded: boolean;
 }
 
-const NavButton: React.FC<{
-    pageName: Page;
-    activePage: Page;
-    onClick: (page: Page) => void;
-}> = ({ pageName, activePage, onClick }) => {
-    const isActive = activePage === pageName;
-    return (
-        <button
-            onClick={() => onClick(pageName)}
-            className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none active:scale-95 ${
-                isActive
-                    ? 'bg-green-accent text-white shadow-card'
-                    : 'text-black/60 hover:bg-green-mint hover:text-sb-green'
-            }`}
-        >
-            {pageName}
-        </button>
-    );
+const formatMonth = (month: string) => {
+  if (!month) return '';
+  const [year, number] = month.split('-').map(Number);
+  return new Date(year, number - 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 };
 
-const formatMonth = (monthStr: string) => {
-    if (!monthStr) return '';
-    const [year, month] = monthStr.split('-');
-    return new Date(parseInt(year), parseInt(month) - 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+const getNextMonth = (month: string) => {
+  const [year, number] = month.split('-').map(Number);
+  const date = new Date(year, number, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 };
 
-const getNextMonth = (monthStr: string) => {
-    const [year, month] = monthStr.split('-').map(Number);
-    const date = new Date(year, month - 1);
-    date.setMonth(date.getMonth() + 1);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
+const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-house-green';
+const SECONDARY = `inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-black/20 bg-white px-4 text-sm font-semibold text-house-green transition-colors hover:bg-green-mint/40 disabled:cursor-not-allowed disabled:opacity-40 ${FOCUS}`;
 
-const NavBar: React.FC<NavBarProps> = ({ activePage, setActivePage, selectedMonth, setSelectedMonth, availableMonths, createNewMonth, deleteMonth, activeRecurringRules, subcategoriesByMonth }) => {
+const NavBar: React.FC<NavBarProps> = ({
+  activePage, setActivePage, selectedMonth, setSelectedMonth, availableMonths,
+  createNewMonth, deleteMonth, activeRecurringRules, subcategoriesByMonth, isBudgetLoaded,
+}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const monthSelectRef = useRef<HTMLSelectElement>(null);
   const { currentUser, logout } = useAuth();
   const pages: Page[] = ['Budget', 'Dashboard', 'How To', 'Settings'];
-  
-  const mostRecentMonth = availableMonths[0] || selectedMonth;
-  const nextMonth = getNextMonth(mostRecentMonth);
-  const showCreateNew = !availableMonths.includes(nextMonth);
+  const months = [...availableMonths].sort();
+  const monthIndex = months.indexOf(selectedMonth);
+  const showMonths = activePage === 'Budget' || activePage === 'Dashboard';
+  const nextMonth = getNextMonth(months[months.length - 1] || selectedMonth);
+  const accountLabel = currentUser?.id === GUEST_USER_ID ? 'Guest session' : currentUser?.email;
 
-  const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    if (value === 'new') {
-        setIsModalOpen(true);
-        // Reset selector to avoid getting stuck on the 'new' option
-        e.target.value = selectedMonth; 
-    } else {
-        setSelectedMonth(value);
+  const handleDelete = async () => {
+    if (!deleteTarget || isDeleting) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const result = await deleteMonth(deleteTarget);
+      if (result.error) setDeleteError(result.error);
+      else setDeleteTarget(null);
+    } catch {
+      setDeleteError('Could not finish deleting this month. Reload to check its status before trying again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
-  
-  const handleCreateMonth = async (month: string, option: CreationOption, sourceMonth?: string, recurringToApply?: RecurringApplyItem[]) => {
-    await createNewMonth(month, option, sourceMonth, recurringToApply);
-    setSelectedMonth(month);
-    setIsModalOpen(false);
-  };
 
-  const handleDeleteMonth = () => {
-    deleteMonth(selectedMonth);
-    setIsConfirmOpen(false);
+  const handleLogout = async () => {
+    setAccountError(null);
+    setIsSigningOut(true);
+    try {
+      await logout();
+    } catch {
+      setAccountError('Could not sign out. Please try again.');
+      setIsSigningOut(false);
+    }
   };
 
   return (
     <>
-      <nav className="bg-white rounded-xl shadow-nav p-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div className="flex items-center space-x-2">
-          {pages.map((page) => (
-            <NavButton
-              key={page}
-              pageName={page}
-              activePage={activePage}
-              onClick={setActivePage}
-            />
-          ))}
-        </div>
-        <div className="flex items-center space-x-2 sm:space-x-4 justify-end">
-            {activePage !== 'How To' && activePage !== 'Settings' && (
-                <div className="flex items-center space-x-2">
-                    <div className="relative">
-                        <select 
-                            value={selectedMonth} 
-                            onChange={handleMonthChange}
-                            className="bg-white border border-black/15 rounded-lg py-2 pl-3 pr-8 text-sm text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40 focus:border-green-accent appearance-none"
-                        >
-                            {availableMonths.map(month => (
-                                <option key={month} value={month}>{formatMonth(month)}</option>
-                            ))}
-                            {showCreateNew && <option value="new">Create a new budget for a month</option>}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-black/40">
-                            <ChevronDownIcon className="w-4 h-4" />
-                        </div>
-                    </div>
-                    {availableMonths.length > 1 && (
-                        <button
-                            onClick={() => setIsConfirmOpen(true)}
-                            className="p-2 text-black/50 hover:text-danger transition-colors rounded-lg hover:bg-black/5"
-                            aria-label="Delete selected month"
-                        >
-                            <TrashIcon className="w-5 h-5" />
-                        </button>
-                    )}
-                </div>
-            )}
-            <div className="flex items-center space-x-2 border-l border-black/10 pl-2 sm:pl-4">
-                <span className="text-sm text-black/50 hidden sm:block truncate">{currentUser?.email}</span>
-                <button
-                    onClick={logout}
-                    className="p-2 text-black/50 hover:text-danger transition-colors rounded-lg hover:bg-black/5"
-                    aria-label="Logout"
-                    title="Sign Out"
-                >
-                    <LogoutIcon className="w-5 h-5" />
-                </button>
+      <a href="#main-content" className={`sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:p-3 ${FOCUS}`}>Skip to content</a>
+      <header className="border-b border-black/10 bg-white">
+        <div className="mx-auto max-w-7xl px-4 pt-5 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-house-green">Zenith</h1>
+              <p className="mt-0.5 text-sm text-black/60">Budget</p>
             </div>
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+              <span className="max-w-32 truncate text-xs text-black/60 sm:max-w-xs sm:text-sm" title={accountLabel}>{accountLabel}</span>
+              <button type="button" onClick={handleLogout} disabled={isSigningOut} aria-label={isSigningOut ? 'Signing out' : 'Sign out'} title="Sign out" className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-black/60 hover:bg-black/5 disabled:opacity-40 ${FOCUS}`}>
+                <span aria-hidden="true"><LogoutIcon className="h-5 w-5" /></span>
+              </button>
+            </div>
+          </div>
+          {accountError && <p role="alert" className="mt-3 text-sm text-danger">{accountError}</p>}
+          <nav aria-label="Main navigation" className="-ml-2 mt-4 flex flex-wrap gap-1 pb-3">
+            {pages.map(page => (
+              <button key={page} type="button" onClick={() => setActivePage(page)} aria-current={activePage === page ? 'page' : undefined} className={`min-h-11 rounded-xl px-3 text-sm font-semibold transition-colors sm:px-4 ${FOCUS} ${activePage === page ? 'bg-green-mint/60 text-house-green' : 'text-black/60 hover:bg-black/5 hover:text-house-green'}`}>
+                {page}
+              </button>
+            ))}
+          </nav>
         </div>
-      </nav>
-      {/* Mounted conditionally so the modal's state — including any recurring amounts
-          the user tuned — resets cleanly between openings. */}
+      </header>
+      {showMonths && (
+        <section aria-label="Budget month controls" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 py-5">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              <button type="button" aria-label="Previous budget month" disabled={!isBudgetLoaded || monthIndex <= 0} onClick={() => setSelectedMonth(months[monthIndex - 1])} className={`${SECONDARY} w-11 shrink-0 px-0`}>
+                <span aria-hidden="true"><ChevronDownIcon className="h-5 w-5 rotate-90" /></span>
+              </button>
+              <div className="relative min-w-0 flex-1 sm:w-52 sm:flex-none">
+                <label htmlFor="budget-month" className="sr-only">Budget month</label>
+                <select id="budget-month" ref={monthSelectRef} value={monthIndex >= 0 ? selectedMonth : ''} disabled={!isBudgetLoaded || months.length === 0} onChange={event => setSelectedMonth(event.target.value)} className={`h-11 w-full appearance-none rounded-xl border border-transparent bg-transparent py-2 pl-3 pr-9 text-center text-base font-semibold text-house-green hover:bg-white disabled:opacity-60 ${FOCUS}`}>
+                  {(monthIndex < 0 || months.length === 0) && <option value="">{isBudgetLoaded ? 'No budget months' : 'Loading months…'}</option>}
+                  {months.map(month => <option key={month} value={month}>{formatMonth(month)}</option>)}
+                </select>
+                <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-black/60"><ChevronDownIcon className="h-4 w-4" /></span>
+              </div>
+              <button type="button" aria-label="Next budget month" disabled={!isBudgetLoaded || monthIndex < 0 || monthIndex >= months.length - 1} onClick={() => setSelectedMonth(months[monthIndex + 1])} className={`${SECONDARY} w-11 shrink-0 px-0`}>
+                <span aria-hidden="true"><ChevronDownIcon className="h-5 w-5 -rotate-90" /></span>
+              </button>
+            </div>
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              <button type="button" onClick={() => setIsModalOpen(true)} disabled={!isBudgetLoaded} className={`${SECONDARY} flex-1 sm:flex-none`}>
+                <span aria-hidden="true"><PlusIcon className="h-4 w-4" /></span>New month
+              </button>
+              {months.length > 1 && monthIndex >= 0 && (
+                <button type="button" onClick={() => { setDeleteTarget(selectedMonth); setDeleteError(null); }} aria-label="Delete selected month" title="Delete selected month" className={`${SECONDARY} w-11 shrink-0 px-0 text-danger hover:bg-danger/5`}>
+                  <span aria-hidden="true"><TrashIcon className="h-4 w-4" /></span>
+                </button>
+              )}
+            </div>
+          </div>
+          <span role="status" className="sr-only">{monthIndex >= 0 ? formatMonth(selectedMonth) : ''}</span>
+        </section>
+      )}
       {isModalOpen && (
         <NewMonthModal
           onClose={() => setIsModalOpen(false)}
-          onCreate={handleCreateMonth}
+          onCreate={createNewMonth}
+          onCreated={month => { setSelectedMonth(month); setIsModalOpen(false); }}
           month={nextMonth}
           availableMonths={availableMonths}
           activeRecurringRules={activeRecurringRules}
           subcategoriesByMonth={subcategoriesByMonth}
+          returnFocusRef={monthSelectRef}
         />
       )}
-      <ConfirmationModal
-        isOpen={isConfirmOpen}
-        onClose={() => setIsConfirmOpen(false)}
-        onConfirm={handleDeleteMonth}
-        title="Delete Budget"
-      >
-        <p>Are you sure you want to delete the budget for <strong>{formatMonth(selectedMonth)}</strong>?</p>
-        <p className="mt-2 text-sm">All associated transactions will be permanently removed. This action cannot be undone.</p>
-      </ConfirmationModal>
+      {deleteTarget && (
+        <MonthDialog title="Delete budget month?" description={formatMonth(deleteTarget)} onClose={() => setDeleteTarget(null)} busy={isDeleting} returnFocusRef={monthSelectRef} footer={
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
+            <button type="button" onClick={() => setDeleteTarget(null)} disabled={isDeleting} className={`${SECONDARY} flex-1`}>Keep month</button>
+            <button type="button" onClick={handleDelete} disabled={isDeleting} className={`min-h-11 flex-1 rounded-xl bg-danger px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 ${FOCUS}`}>{isDeleting ? 'Deleting…' : 'Delete month'}</button>
+          </div>
+        }>
+          <p className="text-sm leading-relaxed text-black/70">This permanently removes this month's budget and its transactions. This action cannot be undone.</p>
+          {deleteError && <p role="alert" className="mt-4 rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm text-danger">{deleteError}</p>}
+        </MonthDialog>
+      )}
     </>
   );
 };

@@ -64,31 +64,21 @@ const MainApp: React.FC = () => {
 
   return (
     <div className="min-h-screen">
-      {/* House Green header band — the espresso-dark bookend */}
-      <header className="bg-house-green">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
-          <h1 className="font-serif text-4xl sm:text-5xl font-semibold text-white">Zenith Budget</h1>
-          <p className="text-white/70 mt-2 text-sm tracking-wide">Manage Your Assets</p>
-        </div>
-      </header>
-      <div className="flex flex-col items-center p-4 sm:p-6 lg:p-8">
-        <div className="w-full max-w-7xl mx-auto">
-          <NavBar
-            activePage={activePage}
-            setActivePage={setActivePage}
-            selectedMonth={selectedMonth}
-            setSelectedMonth={setSelectedMonth}
-            availableMonths={budgetData.availableMonths}
-            createNewMonth={budgetData.createNewMonth}
-            deleteMonth={budgetData.deleteMonth}
-            activeRecurringRules={recurringData.activeRules}
-            subcategoriesByMonth={subcategoriesByMonth}
-          />
-          <main className="mt-6">
-            {renderPage()}
-          </main>
-        </div>
-      </div>
+      <NavBar
+        activePage={activePage}
+        setActivePage={setActivePage}
+        selectedMonth={selectedMonth}
+        setSelectedMonth={setSelectedMonth}
+        availableMonths={budgetData.availableMonths}
+        createNewMonth={budgetData.createNewMonth}
+        deleteMonth={budgetData.deleteMonth}
+        activeRecurringRules={recurringData.activeRules}
+        subcategoriesByMonth={subcategoriesByMonth}
+        isBudgetLoaded={budgetData.isLoaded}
+      />
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl px-4 pb-24 pt-6 focus:outline-none sm:px-6 lg:px-8">
+        {renderPage()}
+      </main>
     </div>
   );
 };

@@ -1,208 +1,155 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { CARD_STYLE, BTN_GHOST, BTN_PRIMARY } from '../constants';
-import XIcon from './icons/XIcon';
+import React, { useId, useMemo, useRef, useState } from 'react';
 import type { RecurringRule, RecurringApplyItem, Subcategories } from '../types';
+import type { CreateMonthResult } from '../hooks/useBudget';
 import { isDueOn, resolveSourceMonth } from '../utils/dates';
-import SelectField from './SelectField';
+import MonthDialog from './MonthDialog';
 import RecurringChecklist, { buildInitialChecklistState, checklistToItems } from './RecurringChecklist';
 import type { ChecklistState } from './RecurringChecklist';
-
-type CreationOption = 'copy' | 'blank' | 'scratch';
 
 const EMPTY_SUBCATEGORIES: Subcategories = {
   Income: [], Expenses: [], Bills: [], Savings: [], Investments: [], Debts: [],
 };
+const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-house-green';
+const FIELD = `min-h-11 w-full min-w-0 rounded-xl border border-black/50 bg-white px-3 py-2 text-base text-black/87 ${FOCUS}`;
+const OPTIONS = [
+  { value: 'copy', title: 'Copy a month', description: 'Keep subcategories and their planned amounts.' },
+  { value: 'blank', title: 'Keep categories, reset amounts', description: 'Keep subcategories with all planned amounts set to zero.' },
+  { value: 'scratch', title: 'Start from scratch', description: 'Begin with no subcategories or planned amounts.' },
+] as const;
 
 interface NewMonthModalProps {
   onClose: () => void;
-  // new signature: optional sourceMonth when copying
-  onCreate: (month: string, option: CreationOption, sourceMonth?: string, recurringToApply?: RecurringApplyItem[]) => void;
+  onCreate: (month: string, option: 'copy' | 'blank' | 'scratch', sourceMonth?: string, recurringToApply?: RecurringApplyItem[]) => Promise<CreateMonthResult>;
+  onCreated: (month: string) => void;
   month: string;
   availableMonths: string[];
   activeRecurringRules: RecurringRule[];
   subcategoriesByMonth: Record<string, Subcategories>;
+  returnFocusRef?: React.RefObject<HTMLElement | null>;
 }
 
-const NewMonthModal: React.FC<NewMonthModalProps> = ({ onClose, onCreate, month, availableMonths, activeRecurringRules, subcategoriesByMonth }) => {
-  const [creationOption, setCreationOption] = useState<CreationOption>('copy');
-  const [selectedMonth, setSelectedMonth] = useState<string>(month);
+const previousMonth = (month: string) => {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return '';
+  const [year, number] = month.split('-').map(Number);
+  const date = new Date(year, number - 2, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const formatMonth = (month: string) => {
+  const [year, number] = month.split('-').map(Number);
+  return new Date(year, number - 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+};
+
+const NewMonthModal: React.FC<NewMonthModalProps> = ({
+  onClose, onCreate, onCreated, month, availableMonths, activeRecurringRules,
+  subcategoriesByMonth, returnFocusRef,
+}) => {
+  const formId = useId();
+  const monthId = useId();
+  const sourceId = useId();
+  const [selectedMonth, setSelectedMonth] = useState(month);
+  const [creationOption, setCreationOption] = useState<'copy' | 'blank' | 'scratch'>('copy');
+  const [sourceMonth, setSourceMonth] = useState(previousMonth(month));
   const [checklist, setChecklist] = useState<ChecklistState>(() => buildInitialChecklistState(activeRecurringRules));
   const [isCreating, setIsCreating] = useState(false);
-  // sourceMonth used when copying: default to previous month relative to selectedMonth
-  const getPreviousMonthStr = (monthStr: string) => {
-    const [y, m] = monthStr.split('-').map(Number);
-    const d = new Date(y, m - 1);
-    d.setMonth(d.getMonth() - 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  };
-  const defaultSource = getPreviousMonthStr(selectedMonth);
-  const [sourceMonth, setSourceMonth] = useState<string>(defaultSource);
-
-  // What the new month starts with: everything whose day has already arrived. Keyed on
-  // selectedMonth so it re-resolves as the user changes the picker. A month fully in the
-  // past keeps every rule (it has elapsed, so it should arrive complete); the current
-  // month gets only what's due so far; a future month gets none and fills in on its own.
-  const dueRules = useMemo(
-    () => activeRecurringRules.filter(r => isDueOn(selectedMonth, r.day_of_month)),
-    [activeRecurringRules, selectedMonth]
-  );
-
-  // Lock body scroll while mounted
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
-
+  const creatingRef = useRef(false);
+  const [error, setError] = useState<string | null>(null);
+  const [monthCreated, setMonthCreated] = useState(false);
+  const validMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(selectedMonth);
   const monthAlreadyExists = availableMonths.includes(selectedMonth);
+  const duplicate = monthAlreadyExists && !isCreating && !monthCreated;
+  const dueRules = useMemo(
+    () => validMonth ? activeRecurringRules.filter(rule => isDueOn(selectedMonth, rule.day_of_month)) : [],
+    [activeRecurringRules, selectedMonth, validMonth],
+  );
+  const resolvedSource = validMonth ? resolveSourceMonth(availableMonths, selectedMonth, creationOption === 'copy' ? sourceMonth : undefined) : undefined;
+  const targetSubcategories = creationOption === 'scratch' ? EMPTY_SUBCATEGORIES : (resolvedSource && subcategoriesByMonth[resolvedSource]) || EMPTY_SUBCATEGORIES;
+  const sourceOptions = [...new Set([previousMonth(selectedMonth), ...availableMonths])].filter(Boolean);
 
-  // What the new month's subcategories will be, so the checklist can flag any a rule
-  // would have to create. Resolved the same way createNewMonth resolves them.
-  const targetSubcategories = useMemo(() => {
-    if (creationOption === 'scratch') return EMPTY_SUBCATEGORIES;
-    const source = resolveSourceMonth(
-      availableMonths,
-      selectedMonth,
-      creationOption === 'copy' ? sourceMonth : undefined
-    );
-    return (source && subcategoriesByMonth[source]) || EMPTY_SUBCATEGORIES;
-  }, [creationOption, availableMonths, selectedMonth, sourceMonth, subcategoriesByMonth]);
-
-  const handleCreate = async () => {
-    if (monthAlreadyExists || isCreating) return;
+  const handleCreate = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!validMonth || monthAlreadyExists || creatingRef.current || monthCreated) return;
+    creatingRef.current = true;
     setIsCreating(true);
-    await onCreate(
-      selectedMonth,
-      creationOption,
-      creationOption === 'copy' ? sourceMonth : undefined,
-      checklistToItems(dueRules, checklist),
-    );
-    setIsCreating(false);
+    setError(null);
+    try {
+      const result = await onCreate(selectedMonth, creationOption, creationOption === 'copy' ? sourceMonth : undefined, checklistToItems(dueRules, checklist));
+      if (result.error) {
+        setError(result.error);
+        setMonthCreated(result.created);
+      } else if (result.created) {
+        onCreated(selectedMonth);
+      }
+    } catch {
+      setError('Could not confirm whether this month was saved. Reload to check its status before trying again.');
+    } finally {
+      creatingRef.current = false;
+      setIsCreating(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
-      <div
-        className={`${CARD_STYLE} w-full ${activeRecurringRules.length > 0 ? 'max-w-lg' : 'max-w-md'} p-4 sm:p-6 animate-fade-in my-auto`}
-        onClick={e => e.stopPropagation()}
-      >
-        <style>{`
-            @keyframes fade-in {
-                from { opacity: 0; transform: scale(0.95); }
-                to { opacity: 1; transform: scale(1); }
-            }
-            .animate-fade-in { animation: fade-in 0.2s ease-out; }
-        `}</style>
-
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-black/87">Create a new budget for a month</h3>
-          <button onClick={onClose} className="text-black/40 hover:text-black/70">
-            <XIcon className="w-6 h-6"/>
+    <MonthDialog
+      title="New budget month"
+      description="Choose a starting point for your monthly plan."
+      onClose={onClose}
+      busy={isCreating}
+      returnFocusRef={returnFocusRef}
+      footer={
+        <div className="flex flex-col gap-2">
+          <button type={monthCreated ? 'button' : 'submit'} form={monthCreated ? undefined : formId} onClick={monthCreated ? () => onCreated(selectedMonth) : undefined} disabled={isCreating || (!monthCreated && (duplicate || !validMonth))} className={`min-h-12 rounded-xl bg-house-green px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-uplift disabled:cursor-not-allowed disabled:opacity-50 ${FOCUS}`}>
+            {isCreating ? 'Creating month…' : monthCreated ? 'Open created month' : 'Create month'}
           </button>
+          <button type="button" onClick={onClose} disabled={isCreating} className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-black/70 hover:bg-black/5 disabled:opacity-40 ${FOCUS}`}>{monthCreated ? 'Close' : 'Cancel'}</button>
         </div>
-
-        <div className="mb-3">
-          <label className="text-xs text-black/60 block mb-1">Month</label>
-          <input
-            type="month"
-            value={selectedMonth}
-            onChange={e => {
-              setSelectedMonth(e.target.value);
-              // update default source when selected month changes
-              setSourceMonth(getPreviousMonthStr(e.target.value));
-            }}
-            className="w-full bg-white border border-black/15 rounded-lg py-1 px-2 text-xs text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40"
-          />
-          <p className="text-xs text-black/40 mt-0.5">Choose any month: past, current, or future.</p>
-          {monthAlreadyExists && (
-            <p className="text-danger text-sm mt-1">
-              A budget already exists for this month. Pick another, or use "Apply recurring" on the Budget page to add recurring transactions to it.
-            </p>
-          )}
-        </div>
-
-        <p className="text-black/60 mb-4">How would you like to set up this month's budget?</p>
-
-        <div className="space-y-4">
-          <div 
-            onClick={() => setCreationOption('copy')}
-            className={`p-4 border rounded-lg cursor-pointer transition-all ${creationOption === 'copy' ? 'bg-green-mint border-green-accent' : 'bg-white border-black/10 hover:border-green-accent/50'}`}
-          >
-            <h4 className="font-semibold text-black/87">Copy budget from another month</h4>
-            <p className="text-sm text-black/60 mt-1">Copy the 'Expected' amounts from a source month.</p>
+      }
+    >
+      <form id={formId} onSubmit={handleCreate}>
+        {error && <div role="alert" className="mb-5 rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm leading-relaxed text-danger">{monthCreated && <p className="mb-1 font-semibold">Your month was created.</p>}{error}</div>}
+        <fieldset disabled={isCreating || monthCreated} className="min-w-0 space-y-6 disabled:opacity-60">
+          <div>
+            <label htmlFor={monthId} className="mb-2 block text-sm font-semibold text-black/87">Budget month</label>
+            <input id={monthId} type="month" required value={selectedMonth} onChange={event => { setSelectedMonth(event.target.value); setSourceMonth(previousMonth(event.target.value)); setError(null); }} aria-invalid={duplicate || undefined} aria-describedby={`${monthId}-hint${duplicate ? ` ${monthId}-error` : ''}`} className={FIELD} />
+            <p id={`${monthId}-hint`} className="mt-2 text-xs leading-relaxed text-black/60">Choose a past, current, or future month.</p>
+            {duplicate && <p id={`${monthId}-error`} role="alert" className="mt-2 text-sm text-danger">A budget already exists for this month. Choose another month.</p>}
+          </div>
+          <fieldset className="min-w-0">
+            <legend className="mb-3 text-sm font-semibold text-black/87">Start your plan</legend>
+            <div className="space-y-2">
+              {OPTIONS.map(option => (
+                <label key={option.value} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${creationOption === option.value ? 'border-house-green bg-green-mint/30' : 'border-black/20 bg-white hover:border-black/40'}`}>
+                  <input type="radio" name={`${formId}-starting-point`} value={option.value} checked={creationOption === option.value} onChange={() => setCreationOption(option.value)} className={`mt-0.5 h-5 w-5 shrink-0 accent-house-green ${FOCUS}`} />
+                  <span className="min-w-0"><span className="block text-sm font-semibold text-black/87">{option.title}</span><span className="mt-1 block text-sm leading-relaxed text-black/60">{option.description}</span></span>
+                </label>
+              ))}
+            </div>
             {creationOption === 'copy' && (
-              <div className="mt-3">
-                <label className="text-xs text-black/60">Source month</label>
-                <SelectField
-                  value={sourceMonth}
-                  onChange={e => setSourceMonth(e.target.value)}
-                  className="mt-1 text-sm"
-                >
-                  {/* default: previous month relative to selectedMonth */}
-                  <option value={getPreviousMonthStr(selectedMonth)}>Previous month ({new Date(getPreviousMonthStr(selectedMonth) + '-02').toLocaleString('default',{month:'long', year:'numeric'})})</option>
-                  {availableMonths.map(m => (
-                    <option key={m} value={m}>{new Date(m + '-02').toLocaleString('default',{month:'long', year:'numeric'})}</option>
-                  ))}
-                </SelectField>
+              <div className="mt-4">
+                <label htmlFor={sourceId} className="mb-2 block text-sm font-medium text-black/70">Copy from</label>
+                <select id={sourceId} value={sourceMonth} onChange={event => setSourceMonth(event.target.value)} className={FIELD} disabled={!validMonth}>
+                  {sourceOptions.map(source => <option key={source} value={source}>{formatMonth(source)}{source === previousMonth(selectedMonth) ? ' (previous month)' : ''}</option>)}
+                </select>
               </div>
             )}
-          </div>
-          <div 
-            onClick={() => setCreationOption('blank')}
-            className={`p-4 border rounded-lg cursor-pointer transition-all ${creationOption === 'blank' ? 'bg-green-mint border-green-accent' : 'bg-white border-black/10 hover:border-green-accent/50'}`}
-          >
-            <h4 className="font-semibold text-black/87">Start with a blank budget</h4>
-            <p className="text-sm text-black/60 mt-1">Keep your subcategories, but set all 'Expected' amounts to $0.</p>
-          </div>
-          <div 
-            onClick={() => setCreationOption('scratch')}
-            className={`p-4 border rounded-lg cursor-pointer transition-all ${creationOption === 'scratch' ? 'bg-green-mint border-green-accent' : 'bg-white border-black/10 hover:border-green-accent/50'}`}
-          >
-            <h4 className="font-semibold text-black/87">Start from scratch</h4>
-            <p className="text-sm text-black/60 mt-1">Start completely fresh with no subcategories.</p>
-          </div>
-        </div>
-
-        {activeRecurringRules.length > 0 && (
-          <div className="mt-6">
-            <h4 className="font-semibold text-black/87">Recurring transactions</h4>
-            {dueRules.length === 0 ? (
-              // Every rule is dated later than today — which is the normal case for a month
-              // that hasn't started. Say so, rather than letting the checklist fall through
-              // to its "set some up in Settings" empty state when the user plainly has some.
-              <p className="text-sm text-black/60">
-                None are due yet in this month. They'll be added automatically as their dates arrive.
-              </p>
-            ) : (
-              <>
-                <p className="text-sm text-black/60 mb-3">
-                  These are due already and will be added to the new month. Untick anything you
-                  don't want, or adjust an amount. Any dated later arrive on their own day.
-                </p>
-                <RecurringChecklist
-                  rules={dueRules}
-                  month={selectedMonth}
-                  state={checklist}
-                  onStateChange={setChecklist}
-                  subcategories={targetSubcategories}
-                />
-              </>
-            )}
-          </div>
-        )}
-
-        <div className="mt-8 flex justify-end space-x-4">
-          <button onClick={onClose} className={BTN_GHOST}>
-            Cancel
-          </button>
-          <button onClick={handleCreate} className={BTN_PRIMARY} disabled={monthAlreadyExists || isCreating}>
-            {isCreating ? 'Creating…' : 'Create Budget'}
-          </button>
-        </div>
-
-      </div>
-    </div>
+            {creationOption !== 'scratch' && validMonth && <p className="mt-3 text-xs leading-relaxed text-black/60">{resolvedSource ? `Subcategories come from ${formatMonth(resolvedSource)}${creationOption === 'blank' ? ', with planned amounts reset to zero' : ''}.` : 'No source budget is available. This month will start with no subcategories.'} Existing transactions stay in their original month.</p>}
+          </fieldset>
+          {activeRecurringRules.length > 0 && (
+            <section aria-labelledby={`${formId}-recurring`} className="border-t border-black/10 pt-5">
+              <h3 id={`${formId}-recurring`} className="text-sm font-semibold text-black/87">Recurring transactions</h3>
+              {dueRules.length === 0 ? (
+                <p className="mt-2 text-sm leading-relaxed text-black/60">{validMonth ? 'None are due yet in this month. They will be added automatically as their dates arrive.' : 'Choose a month to see which transactions are due.'}</p>
+              ) : (
+                <>
+                  <p className="mb-3 mt-2 text-sm leading-relaxed text-black/60">These are already due. Choose which to include and adjust amounts for this month. Later transactions arrive on their own day.</p>
+                  <RecurringChecklist comfortable rules={dueRules} month={selectedMonth} state={checklist} onStateChange={setChecklist} subcategories={targetSubcategories} />
+                </>
+              )}
+            </section>
+          )}
+        </fieldset>
+        {isCreating && <p role="status" className="sr-only">Saving your budget month. Please wait.</p>}
+      </form>
+    </MonthDialog>
   );
 };
 

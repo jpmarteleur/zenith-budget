@@ -11,6 +11,11 @@ interface MonthData {
     subcategories: Subcategories;
 }
 
+export interface CreateMonthResult {
+    created: boolean;
+    error: string | null;
+}
+
 type AllBudgetData = Record<string, MonthData>;
 
 const LOCAL_STORAGE_KEY = 'zenith-guest-budget';
@@ -155,8 +160,10 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
     const setGuestDataInStorage = useCallback((data: AllBudgetData) => {
         try {
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+            return true;
         } catch (error) {
             console.error("Error saving guest data to localStorage", error);
+            return false;
         }
     }, []);
     // --- End Local Storage Functions ---
@@ -443,9 +450,10 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
         option: 'copy' | 'blank' | 'scratch',
         sourceMonth?: string,
         recurringToApply: RecurringApplyItem[] = []
-    ) => {
+    ): Promise<CreateMonthResult> => {
         const dataAtStart = allDataRef.current;
-        if (!currentUser || dataAtStart[month]) return;
+        if (!currentUser) return { created: false, error: 'Sign in before creating a budget month.' };
+        if (dataAtStart[month]) return { created: false, error: 'A budget already exists for this month.' };
 
         let subcategoriesToUse: Subcategories;
         if (option === 'scratch') {
@@ -478,11 +486,15 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
                 recurring_id: item.rule_id,
             })).sort(byDateDesc);
 
-            setGuestDataInStorage(commitAllData(prev => ({
-                ...prev,
+            const nextData = {
+                ...allDataRef.current,
                 [month]: { transactions: guestTransactions, subcategories: subcategoriesToUse }
-            })));
-            return;
+            };
+            if (!setGuestDataInStorage(nextData)) {
+                return { created: false, error: 'Could not save this month on your device. Check available browser storage and try again.' };
+            }
+            commitAllData(nextData);
+            return { created: true, error: null };
         }
 
         commitAllData(prev => ({ ...prev, [month]: { transactions: [], subcategories: subcategoriesToUse } }));
@@ -497,10 +509,10 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
                 delete reverted[month];
                 return reverted;
             });
-            return;
+            return { created: false, error: 'Could not create this budget month. Please try again.' };
         }
 
-        if (resolved.length === 0) return;
+        if (resolved.length === 0) return { created: true, error: null };
 
         const rows = resolved.map(item => ({
             user_id: currentUser.id,
@@ -519,13 +531,14 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
             // The month itself was created correctly — keep it. The user can retry the
             // recurring transactions from the Budget page rather than lose the month.
             console.error("Error adding recurring transactions:", transError);
-            return;
+            return { created: true, error: 'Recurring transactions could not be added. Open this month and use Apply recurring to try those transactions again.' };
         }
 
         commitAllData(prev => ({
             ...prev,
             [month]: { ...prev[month], transactions: (data as Transaction[]).sort(byDateDesc) }
         }));
+        return { created: true, error: null };
     }, [currentUser, commitAllData, setGuestDataInStorage]);
 
     // Apply confirmed recurring items to a month that already exists — for months
@@ -596,31 +609,34 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
         }));
     }, [currentUser, commitAllData, setGuestDataInStorage]);
 
-    const deleteMonth = useCallback(async (monthToDelete: string) => {
+    const deleteMonth = useCallback(async (monthToDelete: string): Promise<{ error: string | null }> => {
         const prevAllData = allDataRef.current;
         if (!currentUser || Object.keys(prevAllData).length <= 1) {
             console.error("Cannot delete the only budget month.");
-            return;
+            return { error: 'Keep at least one budget month.' };
         }
 
-        const newData = commitAllData(prev => {
-            const next = { ...prev };
-            delete next[monthToDelete];
-            return next;
-        });
+        const newData = { ...prevAllData };
+        delete newData[monthToDelete];
 
         if (currentUser.id === GUEST_USER_ID) {
-            setGuestDataInStorage(newData);
-            return;
+            if (!setGuestDataInStorage(newData)) {
+                return { error: 'Could not save this change on your device. This month has not been deleted. Check available browser storage and try again.' };
+            }
+            commitAllData(newData);
+            return { error: null };
         }
 
+        commitAllData(newData);
         const { error: budgetError } = await supabase.from('budgets').delete().match({ user_id: currentUser.id, month: monthToDelete });
         const { error: transError } = await supabase.from('transactions').delete().match({ user_id: currentUser.id, month: monthToDelete });
 
         if (budgetError || transError) {
             console.error("Error deleting month:", budgetError || transError);
             commitAllData(prevAllData); // Revert
+            return { error: 'Could not finish deleting this month. Reload to check its status before trying again.' };
         }
+        return { error: null };
     }, [currentUser, commitAllData, setGuestDataInStorage]);
 
     const totalExpectedIncome = expectedAmounts.Income;
