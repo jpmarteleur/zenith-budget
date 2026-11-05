@@ -44,16 +44,16 @@ const TransactionFields: React.FC<TransactionFieldsProps> = ({
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-start gap-3">
-      <div>
+      <div className="min-w-0">
         <div className="mb-1 flex items-baseline justify-between gap-3">
           <label htmlFor={`${id}-amount`} className="text-sm font-medium text-black/87">Amount</label>
           <span className="text-xs text-black/60">{currency.code}</span>
         </div>
         <input ref={amountRef} id={`${id}-amount`} type="number" inputMode="decimal" step="any" required value={draft.amount} onChange={event => onChange({ amount: event.target.value })} className={`min-h-11 w-full min-w-0 rounded-xl border border-black/50 bg-white px-3 py-2 text-lg font-semibold tabular-nums text-black/87 ${TRANSACTION_FOCUS}`} />
       </div>
-      <div>
+      <div className="min-w-0">
         <label htmlFor={`${id}-date`} className="mb-1 block text-sm font-medium text-black/87">Date</label>
-        <input id={`${id}-date`} type="date" required min={bounds.min} max={bounds.max} value={draft.date} onChange={event => onChange({ date: event.target.value })} className={FIELD} aria-describedby={`${id}-date-hint`} />
+        <input id={`${id}-date`} type="date" required min={bounds.min} max={bounds.max} value={draft.date} onChange={event => onChange({ date: event.target.value })} className={`${FIELD} block max-w-full appearance-none [&::-webkit-date-and-time-value]:min-w-0 [&::-webkit-date-and-time-value]:text-left [&::-webkit-datetime-edit]:min-w-0 [&::-webkit-datetime-edit]:p-0`} aria-describedby={`${id}-date-hint`} />
         <p id={`${id}-date-hint`} className="sr-only">Keep this transaction within the selected budget month.</p>
       </div>
       </div>

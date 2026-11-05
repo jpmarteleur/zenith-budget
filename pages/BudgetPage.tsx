@@ -8,7 +8,6 @@ import BudgetCategorySection from '../components/BudgetCategorySection';
 import { CATEGORY_NAMES } from '../types';
 import type { CategoryName, RecurringRule, Subcategory } from '../types';
 import PlusIcon from '../components/icons/PlusIcon';
-import CheckIcon from '../components/icons/CheckIcon';
 import { planStatus } from '../utils/budget-presentation';
 import { useSettings } from '../contexts/SettingsContext';
 
@@ -33,7 +32,6 @@ const BudgetPage: React.FC<BudgetPageProps> = props => {
   const appliedRuleIds = useMemo(() => new Set(transactions.map(t => t.recurring_id).filter(Boolean) as string[]), [transactions]);
   const pendingRules = useMemo(() => activeRecurringRules.filter(rule => !appliedRuleIds.has(rule.id)), [activeRecurringRules, appliedRuleIds]);
   const status = planStatus(remainingToBudget);
-  const statusText = status === 'allocated' ? 'Fully allocated' : status === 'available' ? 'Left to allocate' : 'Overallocated';
   const openEditor = (category: CategoryName, subcategory?: Subcategory) => {
     returnFocusRef.current = categoryHeaders.current[category] || null;
     setEditor({ category, subcategory });
@@ -53,27 +51,20 @@ const BudgetPage: React.FC<BudgetPageProps> = props => {
   return (
     <div className="mx-auto max-w-4xl space-y-4 pb-24">
       <h1 className="sr-only">Monthly budget</h1>
-      <section aria-labelledby="cash-flow-title" className="rounded-2xl border border-black/10 bg-white p-4 sm:p-6">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="cash-flow-title" className="text-sm font-semibold text-house-green">Recorded cash flow</h2>
-          <p className={`text-2xl font-semibold tabular-nums ${remainingToSpend < 0 ? 'text-danger' : 'text-house-green'}`}>{formatCurrency(remainingToSpend)}</p>
-        </div>
-        <dl className="mt-3 grid grid-cols-2 gap-4 border-t border-black/10 pt-3 text-sm">
-          <div><dt className="text-xs text-black/60">Income recorded</dt><dd className="mt-1 font-semibold tabular-nums">{formatCurrency(actualAmounts.Income || 0)}</dd></div>
-          <div><dt className="text-xs text-black/60">Outflows recorded</dt><dd className="mt-1 font-semibold tabular-nums">{formatCurrency((actualAmounts.Income || 0) - remainingToSpend)}</dd></div>
+      <section aria-label="Monthly balances" className="rounded-2xl border border-black/10 bg-white p-4 sm:px-6">
+        <dl className="grid grid-cols-2 divide-x divide-black/10">
+          <div className="min-w-0 pr-3">
+            <dt className="text-xs font-medium text-black/70">Remaining to allocate</dt>
+            <dd className={`mt-1 break-words text-xl font-semibold tabular-nums ${status === 'overallocated' ? 'text-danger' : 'text-house-green'}`}>{formatCurrency(status === 'allocated' ? 0 : remainingToBudget)}</dd>
+          </div>
+          <div className="min-w-0 pl-3">
+            <dt className="text-xs font-medium text-black/70">Remaining to spend</dt>
+            <dd className={`mt-1 break-words text-xl font-semibold tabular-nums ${remainingToSpend < 0 ? 'text-danger' : 'text-house-green'}`}>{formatCurrency(remainingToSpend)}</dd>
+          </div>
         </dl>
-        <p className="mt-3 text-xs leading-relaxed text-black/60">Recorded income minus outflows, not your bank balance.</p>
       </section>
       <section aria-label="Monthly categories" className="rounded-2xl border border-black/10 bg-white px-3 sm:px-6">
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-black/10 py-4 sm:py-5">
-          <h2 className="text-xl font-semibold tracking-tight text-house-green">This month</h2>
-          <div className="text-right">
-            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${status === 'overallocated' ? 'bg-danger/5 text-danger' : 'bg-green-mint/50 text-house-green'}`}>{status === 'allocated' && <span aria-hidden="true">
-              <CheckIcon className="h-4 w-4" />
-            </span>}{statusText}</span>
-            <p className="mt-1 text-sm font-medium tabular-nums text-black/70">{formatCurrency(status === 'allocated' ? 0 : Math.abs(remainingToBudget))}{status === 'available' ? ' to assign' : status === 'overallocated' ? ' over plan' : ' left to allocate'}</p>
-          </div>
-        </div>
+        <h2 className="border-b border-black/10 py-4 text-lg font-semibold tracking-tight text-house-green">This month</h2>
         {CATEGORY_NAMES.map(category => (
           <BudgetCategorySection
             key={category}
