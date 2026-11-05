@@ -1,14 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { Page } from '../MainApp';
 import type { useBudget } from '../hooks/useBudget';
 import NewMonthModal from './NewMonthModal';
 import Dialog from './Dialog';
 import ChevronDownIcon from './icons/ChevronDownIcon';
 import TrashIcon from './icons/TrashIcon';
-import LogoutIcon from './icons/LogoutIcon';
 import PlusIcon from './icons/PlusIcon';
-import { useAuth } from '../hooks/useAuth';
-import { GUEST_USER_ID } from '../contexts/AuthContext';
 import type { RecurringRule, Subcategories } from '../types';
 
 interface NavBarProps {
@@ -47,16 +44,22 @@ const NavBar: React.FC<NavBarProps> = ({
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [isSigningOut, setIsSigningOut] = useState(false);
-  const [accountError, setAccountError] = useState<string | null>(null);
-  const monthSelectRef = useRef<HTMLSelectElement>(null);
-  const { currentUser, logout } = useAuth();
-  const pages: Page[] = ['Budget', 'How To', 'Settings'];
-  const months = [...availableMonths].sort();
+  const [isMonthOpen, setIsMonthOpen] = useState(false);
+  const monthSelectRef = useRef<HTMLButtonElement>(null);
+  const monthPickerRef = useRef<HTMLDivElement>(null);
+  const months = [...availableMonths].sort().reverse();
   const monthIndex = months.indexOf(selectedMonth);
   const showMonths = activePage === 'Budget';
-  const nextMonth = getNextMonth(months[months.length - 1] || selectedMonth);
-  const accountLabel = currentUser?.id === GUEST_USER_ID ? 'Guest session' : currentUser?.email;
+  const nextMonth = getNextMonth(months[0] || selectedMonth);
+
+  useEffect(() => {
+    if (!isMonthOpen) return;
+    const closeOutside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !monthPickerRef.current?.contains(event.target)) setIsMonthOpen(false);
+    };
+    document.addEventListener('pointerdown', closeOutside);
+    return () => document.removeEventListener('pointerdown', closeOutside);
+  }, [isMonthOpen]);
 
   const handleDelete = async () => {
     if (!deleteTarget || isDeleting) return;
@@ -73,77 +76,44 @@ const NavBar: React.FC<NavBarProps> = ({
     }
   };
 
-  const handleLogout = async () => {
-    setAccountError(null);
-    setIsSigningOut(true);
-    try {
-      await logout();
-    } catch {
-      setAccountError('Could not sign out. Please try again.');
-      setIsSigningOut(false);
-    }
-  };
-
   return (
     <>
       <a href="#main-content" className={`sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:p-3 ${FOCUS}`}>Skip to content</a>
-      <header className="border-b border-black/10 bg-white">
-        <div className="mx-auto max-w-7xl px-4 pt-5 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-house-green">Zenith</h1>
-              <p className="mt-0.5 text-sm text-black/60">Budget</p>
-            </div>
-            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-              <span className="max-w-32 truncate text-xs text-black/60 sm:max-w-xs sm:text-sm" title={accountLabel}>{accountLabel}</span>
-              <button type="button" onClick={handleLogout} disabled={isSigningOut} aria-label={isSigningOut ? 'Signing out' : 'Sign out'} title="Sign out" className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-black/60 hover:bg-black/5 disabled:opacity-40 ${FOCUS}`}>
-                <span aria-hidden="true"><LogoutIcon className="h-5 w-5" /></span>
+      <header className="sticky top-0 z-40 border-b border-black/10 bg-white">
+        <nav aria-label="Main navigation" className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-2 sm:px-6">
+          {showMonths ? <div ref={monthPickerRef} className="relative min-w-0" onBlur={event => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsMonthOpen(false);
+          }} onKeyDown={event => {
+            if (event.key === 'Escape') {
+              setIsMonthOpen(false);
+              monthSelectRef.current?.focus();
+            }
+          }}>
+            <button ref={monthSelectRef} type="button" aria-expanded={isMonthOpen} aria-controls="budget-month-options" aria-label={`Budget month: ${monthIndex >= 0 ? formatMonth(selectedMonth) : 'No budget months'}`} disabled={!isBudgetLoaded} onClick={() => setIsMonthOpen(open => !open)} className={`inline-flex min-h-11 max-w-full items-center gap-3 rounded-xl px-3 text-base font-semibold text-house-green hover:bg-green-mint/40 disabled:opacity-60 ${FOCUS}`}>
+              <span className="truncate">{!isBudgetLoaded ? 'Loading months…' : monthIndex >= 0 ? formatMonth(selectedMonth) : 'Choose a month'}</span>
+              <ChevronDownIcon className={`h-4 w-4 shrink-0 ${isMonthOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isMonthOpen && <div id="budget-month-options" className="absolute left-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-black/20 bg-white p-2 shadow-lg">
+              <button type="button" onClick={() => { setIsMonthOpen(false); setIsModalOpen(true); }} className={`flex min-h-12 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-semibold text-house-green hover:bg-green-mint/50 ${FOCUS}`}>
+                <PlusIcon className="h-4 w-4" />Create new month
               </button>
-            </div>
-          </div>
-          {accountError && <p role="alert" className="mt-3 text-sm text-danger">{accountError}</p>}
-          <nav aria-label="Main navigation" className="-ml-2 mt-4 flex flex-wrap gap-1 pb-3">
-            {pages.map(page => (
-              <button key={page} type="button" onClick={() => setActivePage(page)} aria-current={activePage === page ? 'page' : undefined} className={`min-h-11 rounded-xl px-3 text-sm font-semibold transition-colors sm:px-4 ${FOCUS} ${activePage === page ? 'bg-green-mint/60 text-house-green' : 'text-black/60 hover:bg-black/5 hover:text-house-green'}`}>
-                {page}
-              </button>
-            ))}
-          </nav>
-        </div>
+              <ul aria-label="Budget months" className="max-h-[min(50dvh,20rem)] overflow-y-auto border-t border-black/10 py-1">
+                {months.map(month => <li key={month}><button type="button" aria-current={month === selectedMonth ? 'true' : undefined} onClick={() => {
+                  setSelectedMonth(month); setIsMonthOpen(false); monthSelectRef.current?.focus();
+                }} className={`min-h-11 w-full rounded-lg px-3 text-left text-sm ${FOCUS} ${month === selectedMonth ? 'bg-green-mint/60 font-semibold text-house-green' : 'text-black/70 hover:bg-black/5'}`}>{formatMonth(month)}{month === selectedMonth && <span className="sr-only">, selected</span>}</button></li>)}
+                {!months.length && <li className="px-3 py-3 text-sm text-black/60">No budget months yet.</li>}
+              </ul>
+              {months.length > 1 && monthIndex >= 0 && <button type="button" onClick={() => { setIsMonthOpen(false); setDeleteTarget(selectedMonth); setDeleteError(null); }} className={`flex min-h-11 w-full items-center gap-2 rounded-lg border-t border-black/10 px-3 text-left text-sm text-danger hover:bg-danger/5 ${FOCUS}`}>
+                <TrashIcon className="h-4 w-4" />Delete selected month
+              </button>}
+            </div>}
+          </div> : <button type="button" onClick={() => setActivePage('Budget')} className={`min-h-11 rounded-xl px-3 text-sm font-semibold text-house-green hover:bg-green-mint/40 ${FOCUS}`}><span aria-hidden="true">← </span>Back to budget</button>}
+          {showMonths && <button type="button" aria-label="Settings" onClick={() => { setIsMonthOpen(false); setActivePage('Settings'); }} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-house-green hover:bg-green-mint/40 ${FOCUS}`}>
+            <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="m9.5 3-.6 2.3-1.5.9-2.3-.6-2.5 4.3 1.7 1.7v1.8l-1.7 1.7 2.5 4.3 2.3-.6 1.5.9.6 2.3h5l.6-2.3 1.5-.9 2.3.6 2.5-4.3-1.7-1.7v-1.8l1.7-1.7-2.5-4.3-2.3.6-1.5-.9L14.5 3z"/><circle cx="12" cy="12.5" r="3"/></svg>
+          </button>}
+        </nav>
+        {showMonths && <span role="status" className="sr-only">{monthIndex >= 0 ? formatMonth(selectedMonth) : ''}</span>}
       </header>
-      {showMonths && (
-        <section aria-label="Budget month controls" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 py-5">
-            <div className="flex w-full items-center gap-2 sm:w-auto">
-              <button type="button" aria-label="Previous budget month" disabled={!isBudgetLoaded || monthIndex <= 0} onClick={() => setSelectedMonth(months[monthIndex - 1])} className={`${SECONDARY} w-11 shrink-0 px-0`}>
-                <span aria-hidden="true"><ChevronDownIcon className="h-5 w-5 rotate-90" /></span>
-              </button>
-              <div className="relative min-w-0 flex-1 sm:w-52 sm:flex-none">
-                <label htmlFor="budget-month" className="sr-only">Budget month</label>
-                <select id="budget-month" ref={monthSelectRef} value={monthIndex >= 0 ? selectedMonth : ''} disabled={!isBudgetLoaded || months.length === 0} onChange={event => setSelectedMonth(event.target.value)} className={`h-11 w-full appearance-none rounded-xl border border-transparent bg-transparent py-2 pl-3 pr-9 text-center text-base font-semibold text-house-green hover:bg-white disabled:opacity-60 ${FOCUS}`}>
-                  {(monthIndex < 0 || months.length === 0) && <option value="">{isBudgetLoaded ? 'No budget months' : 'Loading months…'}</option>}
-                  {months.map(month => <option key={month} value={month}>{formatMonth(month)}</option>)}
-                </select>
-                <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-black/60"><ChevronDownIcon className="h-4 w-4" /></span>
-              </div>
-              <button type="button" aria-label="Next budget month" disabled={!isBudgetLoaded || monthIndex < 0 || monthIndex >= months.length - 1} onClick={() => setSelectedMonth(months[monthIndex + 1])} className={`${SECONDARY} w-11 shrink-0 px-0`}>
-                <span aria-hidden="true"><ChevronDownIcon className="h-5 w-5 -rotate-90" /></span>
-              </button>
-            </div>
-            <div className="flex w-full items-center gap-2 sm:w-auto">
-              <button type="button" onClick={() => setIsModalOpen(true)} disabled={!isBudgetLoaded} className={`${SECONDARY} flex-1 sm:flex-none`}>
-                <span aria-hidden="true"><PlusIcon className="h-4 w-4" /></span>New month
-              </button>
-              {months.length > 1 && monthIndex >= 0 && (
-                <button type="button" onClick={() => { setDeleteTarget(selectedMonth); setDeleteError(null); }} aria-label="Delete selected month" title="Delete selected month" className={`${SECONDARY} w-11 shrink-0 px-0 text-danger hover:bg-danger/5`}>
-                  <span aria-hidden="true"><TrashIcon className="h-4 w-4" /></span>
-                </button>
-              )}
-            </div>
-          </div>
-          <span role="status" className="sr-only">{monthIndex >= 0 ? formatMonth(selectedMonth) : ''}</span>
-        </section>
-      )}
       {isModalOpen && (
         <NewMonthModal
           onClose={() => setIsModalOpen(false)}

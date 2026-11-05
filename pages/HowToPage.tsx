@@ -1,22 +1,22 @@
 import React from 'react';
 
 const steps = [
-  { title: 'Set up your month', text: 'Use New month on Budget. Copy a previous plan, keep its subcategories with planned amounts reset to zero, or start from scratch. Copying brings over the plan, never its transaction history, and cannot overwrite an existing month.' },
+  { title: 'Set up your month', text: 'Open the month dropdown on Budget and choose Create new month at the top. Copy a previous plan, keep its subcategories with planned amounts reset to zero, or start from scratch. Copying brings over the plan, never its transaction history, and cannot overwrite an existing month.' },
   { title: 'Give your income a job', text: 'Open Plan and expand a category. Add income sources and subcategories, then select a row to edit its planned amount. Income, Expenses, Bills, Savings, Investments, and Debts each have their own place. Aim for zero left to allocate.' },
   { title: 'Record everyday activity', text: 'Use Add transaction, then Quick entry for AI suggestions or Manual to enter the details yourself. Review the category, subcategory, amount, date, and note before saving. Transaction dates stay within the selected budget month.' },
   { title: 'Track and adjust', text: 'Open Track to compare recorded activity with your plan. Expand categories for the details. Transaction history sits below both views, where you can edit or delete entries. Adjust allocations in Plan as your needs change.' },
 ];
 
-const HowToPage: React.FC = () => (
+const HowToPage: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => (
   <div className="mx-auto max-w-4xl space-y-6 text-sm leading-relaxed text-black/70">
     <header>
-      <h1 className="font-serif text-2xl font-semibold tracking-tight text-house-green">How to use Zenith</h1>
+      {embedded ? <h2 className="text-xl font-semibold tracking-tight text-house-green">How to set up your budget</h2> : <h1 className="text-2xl font-semibold tracking-tight text-house-green">How to set up your budget</h1>}
       <p className="mt-2 text-black/60">A plan for the month. A clearer view of the everyday.</p>
     </header>
 
     <section aria-labelledby="method-title" className="rounded-2xl border border-black/10 bg-white p-5 sm:p-6">
       <h2 id="method-title" className="text-lg font-semibold tracking-tight text-house-green">Give every dollar a purpose</h2>
-      <p className="mt-2">Zenith uses zero-based budgeting: plan how your income will cover expenses, bills, savings, investments, and debt payments. A fully allocated plan means every dollar has a job, not that your bank account is empty.</p>
+      <p className="mt-2">Zero-based budgeting means: plan how your income will cover expenses, bills, savings, investments, and debt payments. A fully allocated plan means every dollar has a job, not that your bank account is empty.</p>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl bg-green-mint/40 p-4">
           <h3 className="font-semibold text-house-green">Plan: left to allocate</h3>

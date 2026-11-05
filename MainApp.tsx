@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import NavBar from './components/NavBar';
 import BudgetPage from './pages/BudgetPage';
-import HowToPage from './pages/HowToPage';
 import SettingsPage from './pages/SettingsPage';
 import { useBudget } from './hooks/useBudget';
 import { useRecurring } from './hooks/useRecurring';
@@ -9,10 +8,17 @@ import { useAuth } from './hooks/useAuth';
 import { useRecurringAutoApply } from './hooks/useRecurringAutoApply';
 import { currentMonthKey } from './utils/dates';
 
-export type Page = 'Budget' | 'How To' | 'Settings';
+export type Page = 'Budget' | 'Settings';
 
 const MainApp: React.FC = () => {
   const [activePage, setActivePage] = useState<Page>('Budget');
+  const [openRecurringSettings, setOpenRecurringSettings] = useState(false);
+  const manageRecurring = () => { setOpenRecurringSettings(true); setActivePage('Settings'); };
+  const navigate = (page: Page) => { setOpenRecurringSettings(false); setActivePage(page); };
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.getElementById('main-content')?.focus({ preventScroll: true });
+  }, [activePage]);
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthKey());
   const { currentUser } = useAuth();
   const budgetData = useBudget(selectedMonth, currentUser);
@@ -49,13 +55,11 @@ const MainApp: React.FC = () => {
   const renderPage = () => {
     switch (activePage) {
       case 'Budget':
-        return <BudgetPage key={selectedMonth} {...budgetData} selectedMonth={selectedMonth} activeRecurringRules={recurringData.activeRules} />;
-      case 'How To':
-        return <HowToPage />;
+        return <BudgetPage key={selectedMonth} {...budgetData} selectedMonth={selectedMonth} activeRecurringRules={recurringData.activeRules} recurringReady={recurringData.isRecurringLoaded && !recurringData.recurringLoadError} onManageRecurring={manageRecurring} />;
       case 'Settings':
-        return <SettingsPage {...recurringData} subcategories={budgetData.subcategories} />;
+        return <SettingsPage {...recurringData} subcategories={budgetData.subcategories} openRecurring={openRecurringSettings} />;
       default:
-        return <BudgetPage key={selectedMonth} {...budgetData} selectedMonth={selectedMonth} activeRecurringRules={recurringData.activeRules} />;
+        return <BudgetPage key={selectedMonth} {...budgetData} selectedMonth={selectedMonth} activeRecurringRules={recurringData.activeRules} recurringReady={recurringData.isRecurringLoaded && !recurringData.recurringLoadError} onManageRecurring={manageRecurring} />;
     }
   };
 
@@ -63,7 +67,7 @@ const MainApp: React.FC = () => {
     <div className="min-h-screen">
       <NavBar
         activePage={activePage}
-        setActivePage={setActivePage}
+        setActivePage={navigate}
         selectedMonth={selectedMonth}
         setSelectedMonth={setSelectedMonth}
         availableMonths={budgetData.availableMonths}
@@ -73,7 +77,7 @@ const MainApp: React.FC = () => {
         subcategoriesByMonth={subcategoriesByMonth}
         isBudgetLoaded={budgetData.isLoaded && !budgetData.loadError}
       />
-      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl px-4 pb-24 pt-6 focus:outline-none sm:px-6 lg:px-8">
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl px-3 pb-8 pt-4 focus:outline-none sm:px-6 lg:px-8">
         {activePage !== 'Settings' && recurringData.recurringLoadError && <div role="alert" className="mx-auto mb-6 max-w-4xl rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm leading-relaxed text-danger">
           <p>Recurring rules could not be loaded. Automatic application and recurring suggestions are unavailable.</p>
           <button type="button" onClick={() => setActivePage('Settings')} className="mt-2 min-h-11 rounded-lg font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-house-green">Open Settings to retry</button>

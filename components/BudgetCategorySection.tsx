@@ -46,8 +46,8 @@ const BudgetCategorySection: React.FC<BudgetCategorySectionProps> = ({ category,
   return (
     <section className="border-b border-black/10 last:border-b-0">
       <h3>
-        <button ref={headerRef} type="button" onClick={onToggle} aria-expanded={expanded} aria-controls={id} className={`flex min-h-20 w-full items-start gap-3 rounded-lg px-1 py-5 text-left hover:bg-black/5 sm:gap-4 ${FOCUS}`}>
-          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `${color}15`, color }}>
+        <button ref={headerRef} type="button" onClick={onToggle} aria-expanded={expanded} aria-controls={id} className={`flex min-h-16 w-full items-start gap-3 rounded-lg px-1 py-4 text-left hover:bg-black/5 sm:gap-4 ${FOCUS}`}>
+          <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ color }}>
             <CategoryIcon category={category} />
           </span>
           <span className="min-w-0 flex-1">
@@ -62,7 +62,7 @@ const BudgetCategorySection: React.FC<BudgetCategorySectionProps> = ({ category,
           </span>
         </button>
       </h3>
-      <div id={id} hidden={!expanded} className="pb-4 pl-12 sm:pl-14">
+      <div id={id} hidden={!expanded} className="pb-4 pl-10 sm:pl-12">
         {subcategories.length === 0 && <p className="py-3 text-sm leading-relaxed text-black/60">{view === 'plan' ? 'Add a subcategory to start planning here.' : 'No subcategories yet. Add them in Plan.'}</p>}
         <ul className="divide-y divide-black/5">
           {subcategories.map(sub => {
