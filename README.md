@@ -26,7 +26,7 @@ The application is built with:
 
 Users create monthly budgets and switch between **Track**, for recorded activity and cash flow, and **Plan**, for expected income and allocations. Expand any of the six categories to see its subcategories. Plan supports adding, editing, deleting, and excluding subcategories from totals while retaining transaction history.
 
-Use **New month** to copy another month’s plan, reset planned amounts while keeping subcategories, or start from scratch. Copying does not copy historical transactions or overwrite an existing month. Transaction entry supports manual input and AI-assisted parsing with an editable review before saving. Settings contains currency formatting and recurring transaction rules. Currency selection does not convert amounts between currencies.
+Use **New month** to copy another month’s plan, reset planned amounts while keeping subcategories, or start from scratch. Copying does not copy historical transactions or overwrite an existing month. Use Quick entry for AI suggestions followed by an editable review, or Manual to enter the details directly. Transaction history appears below Track and Plan, with editing and confirmed deletion. Dates stay within the selected budget month. Failed saves preserve your inputs; an uncertain server response asks you to reload activity before retrying. Settings contains currency formatting and recurring transaction rules. Currency selection does not convert amounts between currencies.
 
 ---
 

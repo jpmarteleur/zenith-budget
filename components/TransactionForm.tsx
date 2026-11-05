@@ -1,403 +1,138 @@
-
-
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import type { CategoryName, Transaction, Subcategories } from '../types';
-import { CATEGORY_NAMES } from '../types';
-import { CARD_STYLE, BTN_PRIMARY, BTN_OUTLINE } from '../constants';
-import PlusIcon from './icons/PlusIcon';
-import XIcon from './icons/XIcon';
+import React, { useEffect, useId, useRef, useState } from 'react';
+import type { useBudget } from '../hooks/useBudget';
+import type { Subcategories } from '../types';
 import { parseTransactionText } from '../services/geminiService';
-import { toDateKey, todayKey } from '../utils/dates';
-import SubcategorySelect from './SubcategorySelect';
-import SelectField from './SelectField';
+import { draftInput, transactionDraft, transactionDraftError } from '../utils/transactions';
+import type { TransactionDraft } from '../utils/transactions';
+import Dialog from './Dialog';
+import TransactionFields, { TRANSACTION_FOCUS, TRANSACTION_PRIMARY, TRANSACTION_SECONDARY } from './TransactionFields';
 
 interface TransactionFormProps {
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<{ error: string | null }>;
+  addTransaction: ReturnType<typeof useBudget>['addTransaction'];
+  addSubcategory: ReturnType<typeof useBudget>['addSubcategory'];
   subcategories: Subcategories;
-  addSubcategory: (category: CategoryName, name: string, expected?: number) => Promise<{ error: string | null }>;
   onClose: () => void;
   selectedMonth: string;
+  returnFocusRef: React.RefObject<HTMLElement | null>;
 }
 
-const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, subcategories, addSubcategory, onClose, selectedMonth }) => {
-  const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai');
-
-  // Lock body scroll when form is open
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
-
-  const [monthMin, monthMax] = useMemo(() => {
-    if (!selectedMonth) return ['', ''];
-    const [year, month] = selectedMonth.split('-').map(Number);
-    const firstDay = new Date(year, month - 1, 1);
-    const lastDay = new Date(year, month, 0); // Day 0 of next month is last day of current month
-    return [
-        toDateKey(firstDay),
-        toDateKey(lastDay)
-    ];
-  }, [selectedMonth]);
-
-  const getInitialDate = useCallback(() => {
-      const todayStr = todayKey();
-
-      // If today is within the selected month's range, use today.
-      if (todayStr >= monthMin && todayStr <= monthMax) {
-          return todayStr;
-      }
-      // Otherwise, default to the first day of the selected month.
-      return monthMin;
-  }, [monthMin, monthMax]);
-  
-  // Manual form state
-  const [manualDate, setManualDate] = useState(getInitialDate);
-  const [manualCategory, setManualCategory] = useState<CategoryName>('Expenses');
-  const [manualSubcategory, setManualSubcategory] = useState('');
-  const [manualAmount, setManualAmount] = useState('');
-  const [manualNote, setManualNote] = useState('');
-
-  // AI form state
-  const [inputText, setInputText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, addSubcategory, subcategories, onClose, selectedMonth, returnFocusRef }) => {
+  const id = useId();
+  const [tab, setTab] = useState<'quick' | 'manual'>('quick');
+  const [text, setText] = useState('');
+  const [review, setReview] = useState(false);
+  const [quickDraft, setQuickDraft] = useState(() => transactionDraft(selectedMonth));
+  const [manualDraft, setManualDraft] = useState(() => transactionDraft(selectedMonth));
+  const [quickNew, setQuickNew] = useState(false);
+  const [manualNew, setManualNew] = useState(false);
+  const [plannedAmount, setPlannedAmount] = useState('');
+  const [busy, setBusy] = useState<'parse' | 'save' | null>(null);
+  const busyRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
-  const [parsedData, setParsedData] = useState<Omit<Transaction, 'id'> | null>(null);
-  
-  // State for AI-assisted subcategory creation
-  const [isCreatingNewSub, setIsCreatingNewSub] = useState(false);
-  const [newSubName, setNewSubName] = useState('');
-  const [newSubExpected, setNewSubExpected] = useState('');
-
-  // When AI data is parsed or the category is changed, decide whether to show dropdown or create new form
+  const [uncertain, setUncertain] = useState(false);
+  const createdSubcategories = useRef(new Map<string, string>());
+  const parsedText = useRef<string | null>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef<HTMLInputElement>(null);
+  const tabRefs = useRef<Partial<Record<'quick' | 'manual', HTMLButtonElement | null>>>({});
+  const wasReviewing = useRef(false);
   useEffect(() => {
-    if (parsedData) {
-      const { category, subcategory } = parsedData;
-      const subExists = subcategories[category]?.some(
-        s => s.name.toLowerCase() === subcategory.toLowerCase()
-      );
-      
-      if (!subExists && subcategory) {
-        setIsCreatingNewSub(true);
-        setNewSubName(subcategory);
-        setNewSubExpected('');
-      } else {
-        setIsCreatingNewSub(false);
-        setNewSubName('');
+    if (review) amountRef.current?.focus();
+    else if (wasReviewing.current) textRef.current?.focus();
+    wasReviewing.current = review;
+  }, [review]);
+  const draft = tab === 'quick' ? quickDraft : manualDraft;
+  const creatingNew = tab === 'quick' ? quickNew : manualNew;
+  const changeDraft = (patch: Partial<TransactionDraft>) => tab === 'quick' ? setQuickDraft(current => ({ ...current, ...patch })) : setManualDraft(current => ({ ...current, ...patch }));
+  const changeCreating = (creating: boolean) => tab === 'quick' ? setQuickNew(creating) : setManualNew(creating);
+
+  const handleParse = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!text.trim() || busyRef.current || uncertain) return;
+    if (parsedText.current === text) { setReview(true); setError(null); return; }
+    busyRef.current = true; setBusy('parse'); setError(null);
+    try {
+      const parsed = await parseTransactionText(text, subcategories);
+      if (!parsed) { setError('Could not read this transaction. Try rephrasing it or choose Manual.'); return; }
+      const existing = subcategories[parsed.category]?.find(sub => sub.name.toLowerCase() === parsed.subcategory.toLowerCase());
+      parsedText.current = text;
+      setQuickDraft(transactionDraft(selectedMonth, { ...parsed, date: quickDraft.date, subcategory: existing?.name ?? parsed.subcategory }));
+      setQuickNew(!existing); setPlannedAmount(''); setReview(true);
+    } catch {
+      setError('Could not read this transaction. Try again or choose Manual.');
+    } finally { busyRef.current = false; setBusy(null); }
+  };
+
+  const handleSave = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (busyRef.current || uncertain) return;
+    const validation = transactionDraftError(draft, selectedMonth);
+    if (validation) { setError(validation); return; }
+    const input = draftInput(draft);
+    const key = `${input.category}:${input.subcategory.toLowerCase()}`;
+    const existing = subcategories[input.category]?.find(sub => sub.name.toLowerCase() === input.subcategory.toLowerCase());
+    if (tab === 'quick' && creatingNew && existing && !createdSubcategories.current.has(key)) {
+      setError('This subcategory already exists. Choose it from the list instead.'); return;
+    }
+    let canonicalName = existing?.name ?? createdSubcategories.current.get(key);
+    if (!canonicalName && !creatingNew) { setError('Choose an existing subcategory or create one.'); return; }
+    const expected = tab === 'quick' && plannedAmount.trim() !== '' ? Number(plannedAmount) : 0;
+    if (!canonicalName && !Number.isFinite(expected)) { setError('Enter a valid planned amount for the new subcategory.'); return; }
+    busyRef.current = true; setBusy('save'); setError(null);
+    let subcategorySaved = !!createdSubcategories.current.get(key);
+    try {
+      if (!canonicalName) {
+        const result = await addSubcategory(input.category, input.subcategory, expected);
+        if (result.error) { setError(result.error); return; }
+        canonicalName = result.subcategory?.name ?? input.subcategory;
+        createdSubcategories.current.set(key, canonicalName);
+        subcategorySaved = true;
+        changeDraft({ subcategory: canonicalName });
+        changeCreating(false);
       }
-    } else {
-      setIsCreatingNewSub(false);
-      setNewSubName('');
-    }
-  }, [parsedData, subcategories]);
-
-  const handleManualSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    const trimmedSubcategory = manualSubcategory.trim();
-    if (!manualCategory || !trimmedSubcategory || !manualAmount) {
-      setError('Please fill out all required fields.');
-      return;
-    }
-
-    let finalSubcategoryName = trimmedSubcategory;
-
-    const existingSubcategory = subcategories[manualCategory]?.find(
-      s => s.name.toLowerCase() === trimmedSubcategory.toLowerCase()
-    );
-
-    if (existingSubcategory) {
-      finalSubcategoryName = existingSubcategory.name;
-    } else {
-      const result = await addSubcategory(manualCategory, finalSubcategoryName);
-      if (result.error) { setError(result.error); return; }
-    }
-
-    const { error: saveError } = await addTransaction({
-      date: manualDate,
-      category: manualCategory,
-      subcategory: finalSubcategoryName,
-      amount: parseFloat(manualAmount),
-      note: manualNote,
-    });
-
-    if (saveError) {
-      setError(saveError);
-      return;
-    }
-
-    onClose();
-  };
-  
-  const handleParse = async () => {
-    if (!inputText.trim()) return;
-    setIsLoading(true);
-    setError(null);
-
-    const result = await parseTransactionText(inputText, subcategories);
-
-    if (result) {
-      setParsedData({
-          date: getInitialDate(),
-          amount: Math.abs(result.amount),
-          category: result.category,
-          subcategory: result.subcategory,
-          note: result.note,
-      });
-      setError(null);
-    } else {
-      setError("Sorry, I couldn't understand that. Please try rephrasing.");
-      setParsedData(null);
-    }
-    setIsLoading(false);
-  };
-  
-  const handleAiSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!parsedData) return;
-    setError(null);
-
-    let subcategoryToSave: string;
-
-    if (isCreatingNewSub) {
-      const trimmedNewName = newSubName.trim();
-      if (!trimmedNewName) {
-        setError("New subcategory name cannot be empty.");
-        return;
-      }
-      const subAlreadyExists = subcategories[parsedData.category]?.some(s => s.name.toLowerCase() === trimmedNewName.toLowerCase());
-      if (subAlreadyExists) {
-        setError(`Subcategory "${trimmedNewName}" already exists. Please choose it from the list.`);
-        return;
-      }
-      const result = await addSubcategory(parsedData.category, trimmedNewName, parseFloat(newSubExpected) || 0);
-      if (result.error) { setError(result.error); return; }
-      subcategoryToSave = trimmedNewName;
-    } else {
-      if (!parsedData.subcategory) {
-        setError("Please select a subcategory.");
-        return;
-      }
-      subcategoryToSave = parsedData.subcategory;
-    }
-    
-    const { error: saveError } = await addTransaction({ ...parsedData, subcategory: subcategoryToSave });
-    if (saveError) {
-      setError(saveError);
-      return;
-    }
-    onClose();
+      const result = await addTransaction({ ...input, subcategory: canonicalName });
+      if (result.error) {
+        setUncertain(!!result.uncertain);
+        setError(`${subcategorySaved ? 'The new subcategory was saved. ' : ''}${result.error}`);
+      } else onClose();
+    } catch {
+      setError('Could not confirm whether this transaction was saved. Reload activity before trying again.');
+      setUncertain(true);
+    } finally { busyRef.current = false; setBusy(null); }
   };
 
-  const handleParsedDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      const { name, value } = e.target;
-      setError(null); // Clear errors on change
-      setParsedData(prev => {
-          if (!prev) return null;
-          const updated = { ...prev, [name]: value };
-          if (name === 'amount') {
-              updated.amount = parseFloat(value) || 0;
-          }
-          if (name === 'category') {
-              updated.subcategory = ''; // Reset subcategory on category change
-          }
-          return updated;
-      });
-  };
-
-  const resetAiTab = () => {
-    setInputText('');
-    setParsedData(null);
-    setError(null);
-  };
-
+  const showFields = tab === 'manual' || review;
   return (
-    <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-        <div
-            className={`${CARD_STYLE} w-full max-w-2xl p-6 animate-fade-in`}
-            onClick={e => e.stopPropagation()}
-        >
-            <style>{`
-                @keyframes fade-in {
-                    from { opacity: 0; transform: scale(0.95); }
-                    to { opacity: 1; transform: scale(1); }
-                }
-                .animate-fade-in { animation: fade-in 0.2s ease-out; }
-            `}</style>
-
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-black/87">Log Transaction</h3>
-                <button onClick={onClose} className="text-black/40 hover:text-black/70">
-                    <XIcon className="w-6 h-6"/>
-                </button>
-            </div>
-            
-            {/* TABS */}
-            <div className="flex border-b border-black/10 mb-6">
-                 <button onClick={() => { setActiveTab('ai'); setError(null); }} className={`py-2 px-4 text-sm font-semibold transition-colors ${activeTab === 'ai' ? 'text-green-accent border-b-2 border-green-accent' : 'text-black/50 hover:text-black/80'}`}>
-                    AI Assist
-                </button>
-                <button onClick={() => { setActiveTab('manual'); setError(null); }} className={`py-2 px-4 text-sm font-semibold transition-colors ${activeTab === 'manual' ? 'text-green-accent border-b-2 border-green-accent' : 'text-black/50 hover:text-black/80'}`}>
-                    Manual Entry
-                </button>
-            </div>
-
-            {/* CONTENT */}
-            {activeTab === 'manual' && (
-                 <form onSubmit={handleManualSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                    <div className="flex flex-col">
-                        <label htmlFor="date" className="text-sm font-medium text-black/60 mb-1">Date</label>
-                        <input type="date" id="date" value={manualDate} onChange={e => setManualDate(e.target.value)} required
-                                min={monthMin} max={monthMax}
-                                className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40" />
-                    </div>
-                    <div className="flex flex-col">
-                        <label htmlFor="amount" className="text-sm font-medium text-black/60 mb-1">Amount</label>
-                        <input type="number" id="amount" value={manualAmount} onChange={e => setManualAmount(e.target.value)} required step="0.01" placeholder="0.00"
-                                className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40" />
-                    </div>
-                    <div className="flex flex-col">
-                        <label htmlFor="category" className="text-sm font-medium text-black/60 mb-1">Category</label>
-                        <SelectField id="category" value={manualCategory} onChange={e => {setManualCategory(e.target.value as CategoryName); setManualSubcategory('')}} required>
-                            {CATEGORY_NAMES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                        </SelectField>
-                    </div>
-                    <div className="flex flex-col">
-                        <label htmlFor="subcategory" className="text-sm font-medium text-black/60 mb-1">Subcategory</label>
-                        {/* keyed on the category so switching categories resets the create-new state */}
-                        <SubcategorySelect
-                            key={manualCategory}
-                            id="subcategory"
-                            value={manualSubcategory}
-                            onChange={setManualSubcategory}
-                            options={subcategories[manualCategory] || []}
-                            required
-                        />
-                    </div>
-                    <div className="flex flex-col md:col-span-2">
-                        <label htmlFor="note" className="text-sm font-medium text-black/60 mb-1">Note</label>
-                        <input type="text" id="note" value={manualNote} onChange={e => setManualNote(e.target.value)} placeholder="(Optional)"
-                                className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40" />
-                    </div>
-                    {error && <p className="text-danger text-sm text-center md:col-span-2">{error}</p>}
-                    <button type="submit" className={`${BTN_PRIMARY} md:col-span-2 space-x-2`}>
-                        <PlusIcon className="w-5 h-5" />
-                        <span>Add Transaction</span>
-                    </button>
-                </form>
-            )}
-            
-            {activeTab === 'ai' && (
-                <div>
-                    {!parsedData ? (
-                        <>
-                            <p className="text-black/60 mb-4 text-sm">e.g., "$10 Chipotle", "$1500 rent", or "paycheck for $2500"</p>
-                            <div className="flex space-x-2">
-                                <input
-                                type="text"
-                                value={inputText}
-                                onChange={(e) => setInputText(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleParse()}
-                                placeholder="Enter transaction..."
-                                className="flex-grow bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40"
-                                disabled={isLoading}
-                                />
-                                <button
-                                onClick={handleParse}
-                                disabled={isLoading || !inputText.trim()}
-                                className={BTN_PRIMARY}
-                                >
-                                {isLoading ? 'Parsing...' : 'Parse'}
-                                </button>
-                            </div>
-                            {error && <p className="text-danger mt-4 text-center">{error}</p>}
-                        </>
-                    ) : (
-                        <form onSubmit={handleAiSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                            <div className="flex flex-col">
-                                <label className="text-sm font-medium text-black/60 mb-1">Date</label>
-                                <input type="date" name="date" value={parsedData.date} onChange={handleParsedDataChange} required min={monthMin} max={monthMax} className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40" />
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="text-sm font-medium text-black/60 mb-1">Amount</label>
-                                <input type="number" name="amount" value={parsedData.amount} onChange={handleParsedDataChange} required step="0.01" placeholder="0.00" className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40" />
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="text-sm font-medium text-black/60 mb-1">Category</label>
-                                <SelectField name="category" value={parsedData.category} onChange={handleParsedDataChange} required>
-                                    {CATEGORY_NAMES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                                </SelectField>
-                            </div>
-                            <div className="flex flex-col">
-                                <label htmlFor="subcategory-ai" className="text-sm font-medium text-black/60 mb-1">Subcategory</label>
-                                {isCreatingNewSub ? (
-                                    <div className="space-y-2 p-2 border border-black/15 rounded-lg bg-cream">
-                                        <input
-                                            type="text"
-                                            placeholder="New Subcategory Name"
-                                            value={newSubName}
-                                            onChange={(e) => setNewSubName(e.target.value)}
-                                            required
-                                            className="w-full bg-white border border-black/15 rounded-lg py-1.5 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40"
-                                        />
-                                        <input
-                                            type="number"
-                                            placeholder="Expected Budget (Optional)"
-                                            value={newSubExpected}
-                                            onChange={(e) => setNewSubExpected(e.target.value)}
-                                            step="0.01"
-                                            className="w-full bg-white border border-black/15 rounded-lg py-1.5 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40"
-                                        />
-                                        <button type="button" onClick={() => { setIsCreatingNewSub(false); setError(null); }} className="text-xs text-green-accent hover:text-sb-green">
-                                            Cancel
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <SelectField
-                                        id="subcategory-ai"
-                                        name="subcategory"
-                                        value={parsedData.subcategory}
-                                        onChange={(e) => {
-                                            if (e.target.value === '__CREATE_NEW__') {
-                                                setIsCreatingNewSub(true);
-                                                setNewSubName('');
-                                                setNewSubExpected('');
-                                            } else {
-                                                handleParsedDataChange(e);
-                                            }
-                                        }}
-                                        required
-                                    >
-                                        <option value="" disabled>Select or create...</option>
-                                        {subcategories[parsedData.category]?.map(sub => (
-                                            <option key={sub.id} value={sub.name}>{sub.name}</option>
-                                        ))}
-                                        <option value="__CREATE_NEW__" className="italic text-green-accent font-semibold bg-white">-- Create New --</option>
-                                    </SelectField>
-                                )}
-                            </div>
-                            <div className="flex flex-col md:col-span-2">
-                                <label className="text-sm font-medium text-black/60 mb-1">Note</label>
-                                <input type="text" name="note" value={parsedData.note} onChange={handleParsedDataChange} placeholder="(Optional)" className="bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40" />
-                            </div>
-                            {error && <p className="text-danger text-sm text-center md:col-span-2">{error}</p>}
-                            <div className="md:col-span-2 grid grid-cols-2 gap-4 mt-4">
-                                <button type="button" onClick={resetAiTab} className={BTN_OUTLINE}>
-                                    Parse Another
-                                </button>
-                                <button type="submit" className={`${BTN_PRIMARY} space-x-2`}>
-                                    <PlusIcon className="w-5 h-5" />
-                                    <span>Add Transaction</span>
-                                </button>
-                            </div>
-                        </form>
-                    )}
-                </div>
-            )}
-        </div>
-    </div>
+    <Dialog title={review ? 'Review transaction' : 'Add transaction'} description={review ? 'Check the details before saving to this month.' : 'Describe a transaction or enter the details yourself.'} onClose={onClose} busy={!!busy} returnFocusRef={returnFocusRef} footer={
+      <div className="flex flex-col gap-2">
+        {uncertain ? <button type="button" onClick={() => window.location.reload()} className={TRANSACTION_PRIMARY}>Reload activity</button> : <button type="submit" form={`${id}-form`} disabled={!!busy || (!showFields && !text.trim())} className={TRANSACTION_PRIMARY}>{busy === 'parse' ? 'Reading transaction…' : busy === 'save' ? 'Saving…' : showFields ? 'Save transaction' : 'Review transaction'}</button>}
+        {review && !uncertain && <button type="button" onClick={() => { setReview(false); setError(null); }} disabled={!!busy} className={TRANSACTION_SECONDARY}>Back to quick entry</button>}
+        {!review && <button type="button" onClick={onClose} disabled={!!busy} className={TRANSACTION_SECONDARY}>{uncertain ? 'Close' : 'Cancel'}</button>}
+        {review && uncertain && <button type="button" onClick={onClose} className={TRANSACTION_SECONDARY}>Close</button>}
+      </div>
+    }>
+      {error && <p role="alert" className="mb-5 rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm leading-relaxed text-danger">{error}</p>}
+      {!review && <div role="tablist" aria-label="Transaction entry method" className="mb-5 grid grid-cols-2 gap-1 rounded-xl bg-black/5 p-1">
+        {(['quick', 'manual'] as const).map(method => <button key={method} ref={element => { tabRefs.current[method] = element; }} type="button" role="tab" id={`${id}-${method}`} aria-selected={tab === method} aria-controls={`${id}-entry`} tabIndex={tab === method ? 0 : -1} disabled={!!busy || uncertain} onClick={() => { setTab(method); setError(null); }} onKeyDown={event => {
+          if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          const next = event.key === 'Home' ? 'quick' : event.key === 'End' ? 'manual' : method === 'quick' ? 'manual' : 'quick';
+          setTab(next); setError(null); tabRefs.current[next]?.focus();
+        }} className={`min-h-11 rounded-lg text-sm font-semibold disabled:opacity-50 ${TRANSACTION_FOCUS} ${tab === method ? 'bg-green-mint text-house-green' : 'text-black/60 hover:bg-white/60'}`}>{method === 'quick' ? 'Quick entry' : 'Manual'}</button>)}
+      </div>}
+      <div id={`${id}-entry`} role={!review ? 'tabpanel' : undefined} aria-labelledby={!review ? `${id}-${tab}` : undefined}>
+        <form id={`${id}-form`} onSubmit={showFields ? handleSave : handleParse}>
+          <fieldset disabled={!!busy || uncertain} className="min-w-0 disabled:opacity-60">
+            {showFields ? <TransactionFields amountRef={amountRef} draft={draft} onChange={changeDraft} selectedMonth={selectedMonth} subcategories={subcategories} creatingNew={creatingNew} onCreatingChange={changeCreating} plannedAmount={plannedAmount} onPlannedAmountChange={tab === 'quick' ? setPlannedAmount : undefined} /> : <div>
+              <label htmlFor={`${id}-text`} className="mb-3 block text-base font-semibold text-black/87">What did you spend or receive?</label>
+              <input ref={textRef} id={`${id}-text`} required value={text} onChange={event => setText(event.target.value)} placeholder="10 Chipotle" className={`min-h-24 w-full min-w-0 rounded-xl border border-black/50 bg-white px-4 py-5 text-xl text-black/87 placeholder:text-black/50 ${TRANSACTION_FOCUS}`} />
+              <p className="mt-3 text-sm leading-relaxed text-black/60">Amount and description are enough. AI suggests the details; you review them before saving.</p>
+            </div>}
+          </fieldset>
+        </form>
+      </div>
+      {busy && <p role="status" className="sr-only">{busy === 'parse' ? 'Reading your transaction.' : 'Saving your transaction.'}</p>}
+    </Dialog>
   );
 };
-
 export default TransactionForm;

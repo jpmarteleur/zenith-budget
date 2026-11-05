@@ -21,7 +21,7 @@ const Dialog: React.FC<DialogProps> = ({
 
   useEffect(() => {
     const dialog = dialogRef.current;
-    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const trigger = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
     dialog?.showModal();
     document.body.style.overflow = 'hidden';

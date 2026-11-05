@@ -4,6 +4,7 @@ import { CATEGORY_NAMES } from '../types';
 import { GUEST_USER_ID } from '../contexts/AuthContext';
 import { supabase } from '../services/supabaseClient';
 import { currentMonthKey, monthDayToDate, resolveSourceMonth } from '../utils/dates';
+import { transactionInputError, type TransactionInput } from '../utils/transactions';
 import type { User } from '@supabase/supabase-js';
 
 interface MonthData {
@@ -14,6 +15,18 @@ interface MonthData {
 export interface BudgetWriteResult {
     error: string | null;
 }
+
+export interface TransactionWriteResult extends BudgetWriteResult {
+    uncertain?: boolean;
+}
+
+const transactionWriteFailure = (action: 'saved' | 'deleted', error?: { code?: string } | null, status = 0): TransactionWriteResult => {
+    // A transport or representation failure can arrive after commit; only a server SQL rejection permits retry.
+    const rejected = status >= 400 && status < 600 && !!error?.code && /^(?=.*\d)[0-9A-Z]{5}$/.test(error.code);
+    return rejected
+        ? { error: `This transaction could not be ${action}. Please try again.` }
+        : { error: `Could not confirm whether this transaction was ${action}. Reload activity before trying again.`, uncertain: true };
+};
 
 export interface CreateMonthResult {
     created: boolean;
@@ -140,6 +153,8 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
     // same stale snapshot and the second would clobber the first. Guest writes read
     // this instead of the `allData` closure.
     const allDataRef = useRef<AllBudgetData>(allData);
+    const currentUserIdRef = useRef(currentUser?.id);
+    currentUserIdRef.current = currentUser?.id;
 
     // The only way this hook should update allData. Accepts a value or an updater,
     // keeps the ref in step, and hands back what it committed so guest callers can
@@ -242,7 +257,7 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
 
     const persistSubcategories = useCallback(async (subcategories: Subcategories): Promise<BudgetWriteResult> => {
         const previous = allDataRef.current[selectedMonth];
-        if (!currentUser || !previous) return { error: 'This budget month is not available. Reload before editing.' };
+        if (!currentUser || currentUserIdRef.current !== currentUser.id || !previous) return { error: 'This budget month is not available. Reload before editing.' };
         const next = { ...allDataRef.current, [selectedMonth]: { ...previous, subcategories } };
         if (currentUser.id === GUEST_USER_ID) {
             if (!setGuestDataInStorage(next)) return { error: 'Could not save on your device. Check browser storage and try again.' };
@@ -255,7 +270,7 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
             if (error || data?.length !== 1 || data[0].month !== selectedMonth) {
                 return { error: 'Could not save this plan. Your budget may have changed or you may no longer have access. Reload or try again.' };
             }
-            if (!allDataRef.current[selectedMonth]) return { error: 'This month is no longer available. Reload to check its saved plan.' };
+            if (currentUserIdRef.current !== currentUser.id || !allDataRef.current[selectedMonth]) return { error: 'The account or month changed. Reload to check its saved plan.' };
             commitAllData(current => ({ ...current, [selectedMonth]: { ...current[selectedMonth], subcategories } }));
             return { error: null };
         } catch {
@@ -263,93 +278,86 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
         }
     }, [selectedMonth, currentUser, commitAllData, setGuestDataInStorage]);
 
-    const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>): Promise<{ error: string | null }> => {
-        if (!currentUser) return { error: 'You must be signed in to add a transaction.' };
-
-        if (currentUser.id === GUEST_USER_ID) {
-            const newTransaction: Transaction = { ...transaction, id: crypto.randomUUID() };
-            // Built from the live ref, not the render's snapshot: the caller may have
-            // just created a subcategory for this transaction in the same tick.
-            const newAllData = commitAllData(prev => {
-                const currentMonth = prev[selectedMonth] || { transactions: [], subcategories: blankSubcategories };
-                return {
-                    ...prev,
-                    [selectedMonth]: {
-                        ...currentMonth,
-                        transactions: [newTransaction, ...currentMonth.transactions].sort(byDateDesc),
-                    }
-                };
-            });
-            setGuestDataInStorage(newAllData);
-            return { error: null };
+    const commitTransactionChange = useCallback((
+        mapper: (transactions: Transaction[]) => Transaction[]
+    ): TransactionWriteResult => {
+        const month = allDataRef.current[selectedMonth];
+        if (!currentUser || currentUserIdRef.current !== currentUser.id || !month) return { error: 'This budget month is not available. Reload before editing.' };
+        const next = {
+            ...allDataRef.current,
+            [selectedMonth]: { ...month, transactions: mapper(month.transactions) },
+        };
+        if (currentUser.id === GUEST_USER_ID && !setGuestDataInStorage(next)) {
+            return { error: 'Could not save this change on your device. Check browser storage and try again.' };
         }
-
-        const transactionData = { ...transaction, user_id: currentUser.id, month: selectedMonth };
-        const { data, error } = await supabase.from('transactions').insert(transactionData).select().single();
-
-        if (error || !data) {
-            console.error("Error adding transaction:", error);
-            return { error: error?.message ?? 'Failed to save transaction.' };
-        }
-
-        const newTransaction: Transaction = data as Transaction;
-        commitAllData(prev => {
-            const currentMonth = prev[selectedMonth] || { transactions: [], subcategories: blankSubcategories };
-            return {
-                ...prev,
-                [selectedMonth]: {
-                    ...currentMonth,
-                    transactions: [newTransaction, ...currentMonth.transactions].sort(byDateDesc),
-                }
-            };
-        });
+        commitAllData(next);
         return { error: null };
     }, [selectedMonth, currentUser, commitAllData, setGuestDataInStorage]);
 
-    // Rewrites just this month's transaction list, always from the latest committed
-    // data rather than the render's snapshot.
-    const commitTransactions = useCallback((
-        mapper: (transactions: Transaction[]) => Transaction[]
-    ): AllBudgetData => commitAllData(prev => {
-        const currentMonth = prev[selectedMonth] || { transactions: [], subcategories: blankSubcategories };
-        return { ...prev, [selectedMonth]: { ...currentMonth, transactions: mapper(currentMonth.transactions) } };
-    }), [commitAllData, selectedMonth]);
-
-    const updateTransaction = useCallback(async (updatedTransaction: Transaction) => {
-        if (!currentUser) return;
-        const applyEdit = (ts: Transaction[]) =>
-            ts.map(t => t.id === updatedTransaction.id ? updatedTransaction : t);
-
+    const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>): Promise<TransactionWriteResult> => {
+        const month = allDataRef.current[selectedMonth];
+        if (!currentUser || currentUserIdRef.current !== currentUser.id || !month) return { error: 'This budget month is not available. Reload before adding a transaction.' };
+        const validation = transactionInputError(transaction, selectedMonth);
+        if (validation) return { error: validation };
+        const subcategory = month.subcategories[transaction.category]?.find(sub => sub.name.toLowerCase() === transaction.subcategory.trim().toLowerCase());
+        if (!subcategory) return { error: 'Save this subcategory before adding its transaction.' };
+        const input: TransactionInput = { date: transaction.date, amount: transaction.amount, category: transaction.category, subcategory: subcategory.name, note: transaction.note };
         if (currentUser.id === GUEST_USER_ID) {
-            setGuestDataInStorage(commitTransactions(applyEdit));
-            return;
+            const record: Transaction = { ...input, id: crypto.randomUUID() };
+            return commitTransactionChange(transactions => [record, ...transactions].sort(byDateDesc));
         }
-
-        const { id, ...updateData } = updatedTransaction;
-        const { error } = await supabase.from('transactions').update(updateData).eq('id', id);
-        if (error) {
-            console.error("Error updating transaction:", error);
-            return;
+        try {
+            const { data, error, status } = await supabase.from('transactions').insert({ ...input, user_id: currentUser.id, month: selectedMonth }).select().single();
+            if (error || !data || typeof data.id !== 'string') return transactionWriteFailure('saved', error, status);
+            const result = commitTransactionChange(transactions => [data as Transaction, ...transactions].sort(byDateDesc));
+            return result.error ? { error: 'The transaction was saved, but this month is no longer loaded. Reload activity to view it.', uncertain: true } : result;
+        } catch {
+            return transactionWriteFailure('saved');
         }
-        commitTransactions(applyEdit);
-    }, [selectedMonth, currentUser, commitTransactions, setGuestDataInStorage]);
+    }, [selectedMonth, currentUser, commitTransactionChange]);
 
-    const deleteTransaction = useCallback(async (id: string) => {
-        if (!currentUser) return;
-        const applyDelete = (ts: Transaction[]) => ts.filter(t => t.id !== id);
-
-        if (currentUser.id === GUEST_USER_ID) {
-            setGuestDataInStorage(commitTransactions(applyDelete));
-            return;
+    const updateTransaction = useCallback(async (updatedTransaction: Transaction): Promise<TransactionWriteResult> => {
+        const month = allDataRef.current[selectedMonth];
+        const original = month?.transactions.find(transaction => transaction.id === updatedTransaction.id);
+        if (!currentUser || currentUserIdRef.current !== currentUser.id || !original) return { error: 'This transaction is no longer available in this month. Reload activity.' };
+        const validation = transactionInputError(updatedTransaction, selectedMonth);
+        if (validation) return { error: validation };
+        const subcategory = month.subcategories[updatedTransaction.category]?.find(sub => sub.name === updatedTransaction.subcategory);
+        if (!subcategory && !(original.category === updatedTransaction.category && original.subcategory === updatedTransaction.subcategory)) {
+            return { error: 'Choose an existing subcategory for this category.' };
         }
-
-        const { error } = await supabase.from('transactions').delete().eq('id', id);
-        if (error) {
-            console.error("Error deleting transaction:", error);
-            return;
+        const fields: TransactionInput = { date: updatedTransaction.date, amount: updatedTransaction.amount, category: updatedTransaction.category, subcategory: updatedTransaction.subcategory, note: updatedTransaction.note };
+        const applyEdit = (transactions: Transaction[]) => transactions.map(transaction => transaction.id === original.id ? { ...transaction, ...fields } : transaction).sort(byDateDesc);
+        if (currentUser.id === GUEST_USER_ID) return commitTransactionChange(applyEdit);
+        try {
+            const { data, error, status } = await supabase.from('transactions').update(fields)
+                .match({ id: original.id, user_id: currentUser.id, month: selectedMonth }).select('id');
+            if (error) return transactionWriteFailure('saved', error, status);
+            if (data?.length !== 1 || data[0].id !== original.id) return { error: 'No updated transaction was returned. Reload activity or try again.' };
+            const result = commitTransactionChange(applyEdit);
+            return result.error ? { error: 'The transaction was saved. Reload activity to view it.', uncertain: true } : result;
+        } catch {
+            return transactionWriteFailure('saved');
         }
-        commitTransactions(applyDelete);
-    }, [selectedMonth, currentUser, commitTransactions, setGuestDataInStorage]);
+    }, [selectedMonth, currentUser, commitTransactionChange]);
+
+    const deleteTransaction = useCallback(async (id: string): Promise<TransactionWriteResult> => {
+        if (!currentUser || currentUserIdRef.current !== currentUser.id || !allDataRef.current[selectedMonth]?.transactions.some(transaction => transaction.id === id)) {
+            return { error: 'This transaction is no longer available in this month. Reload activity.' };
+        }
+        const applyDelete = (transactions: Transaction[]) => transactions.filter(transaction => transaction.id !== id);
+        if (currentUser.id === GUEST_USER_ID) return commitTransactionChange(applyDelete);
+        try {
+            const { data, error, status } = await supabase.from('transactions').delete()
+                .match({ id, user_id: currentUser.id, month: selectedMonth }).select('id');
+            if (error) return transactionWriteFailure('deleted', error, status);
+            if (data?.length !== 1 || data[0].id !== id) return { error: 'No deleted transaction was returned. Reload activity or try again.' };
+            const result = commitTransactionChange(applyDelete);
+            return result.error ? { error: 'The transaction was deleted. Reload activity to see the current month.', uncertain: true } : result;
+        } catch {
+            return transactionWriteFailure('deleted');
+        }
+    }, [selectedMonth, currentUser, commitTransactionChange]);
 
     const addSubcategory = useCallback(async (category: CategoryName, name: string, expected = 0) => {
         if (!name.trim() || !Number.isFinite(expected)) return { error: 'Enter a name and a valid planned amount.', subcategory: null };

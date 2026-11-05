@@ -1,13 +1,13 @@
 import React, { useId, useMemo, useRef, useState } from 'react';
 import type { useBudget } from '../hooks/useBudget';
 import TransactionForm from '../components/TransactionForm';
-import TransactionTable from '../components/TransactionTable';
+import TransactionHistory from '../components/TransactionHistory';
 import ApplyRecurringModal from '../components/ApplyRecurringModal';
 import AllocationEditor from '../components/AllocationEditor';
 import BudgetCategorySection from '../components/BudgetCategorySection';
 import { CATEGORY_NAMES } from '../types';
 import type { CategoryName, RecurringRule, Subcategory } from '../types';
-import { CARD_STYLE, BTN_PRIMARY, BTN_OUTLINE } from '../constants';
+import { CARD_STYLE, BTN_OUTLINE } from '../constants';
 import PlusIcon from '../components/icons/PlusIcon';
 import CheckIcon from '../components/icons/CheckIcon';
 import { isDueOn } from '../utils/dates';
@@ -30,6 +30,7 @@ const BudgetPage: React.FC<BudgetPageProps> = props => {
   const [expanded, setExpanded] = useState<Set<CategoryName>>(() => new Set(['Expenses']));
   const [editor, setEditor] = useState<{ category: CategoryName; subcategory?: Subcategory } | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const transactionButtonRef = useRef<HTMLButtonElement | null>(null);
   const categoryHeaders = useRef<Partial<Record<CategoryName, HTMLButtonElement | null>>>({});
   const tabRefs = useRef<Partial<Record<'track' | 'plan', HTMLButtonElement | null>>>({});
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -55,7 +56,7 @@ const BudgetPage: React.FC<BudgetPageProps> = props => {
   </section>;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6 pb-24">
       <div role="tablist" aria-label="Budget view" className="grid grid-cols-2 gap-1 rounded-xl bg-black/5 p-1">
         {(['track', 'plan'] as const).map(tab => <button key={tab} ref={element => { tabRefs.current[tab] = element; }} type="button" role="tab" id={`${id}-${tab}`} aria-selected={view === tab} aria-controls={`${id}-panel`} tabIndex={view === tab ? 0 : -1} onClick={() => setView(tab)} onKeyDown={event => {
           if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
@@ -103,23 +104,15 @@ const BudgetPage: React.FC<BudgetPageProps> = props => {
           {view === 'track' && <p className="text-lg font-semibold tabular-nums text-house-green">{formatCurrency(remainingToSpend)}</p>}
         </div>
       </div>
-      {transactions.length === 0 && <div className={`${CARD_STYLE} p-6 text-center`}>
-        <h3 className="text-lg font-semibold text-black/87">Your budget is ready!</h3>
-        <p className="mb-4 mt-1 text-sm text-black/60">The next step is to log your income and expenses.</p>
-        <button type="button" onClick={() => setIsFormVisible(true)} className={`${BTN_PRIMARY} mx-auto gap-2`}>
-          <PlusIcon className="h-5 w-5" />
-          <span>Log Your First Transaction</span>
-        </button>
-      </div>}
       {pendingRules.length > 0 && <div className={`${CARD_STYLE} flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between`}>
         <p className="text-sm text-black/70">{pendingRules.length === 1 ? "1 recurring transaction hasn't been added to this month yet." : `${pendingRules.length} recurring transactions haven't been added to this month yet.`}</p>
         <button type="button" onClick={() => setIsApplyRecurringVisible(true)} className={`${BTN_OUTLINE} shrink-0`}>Apply recurring ({pendingRules.length})</button>
       </div>}
-      <TransactionTable transactions={transactions} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} subcategories={subcategories} onLogTransactionClick={() => setIsFormVisible(true)} />
+      <TransactionHistory addButtonRef={transactionButtonRef} selectedMonth={selectedMonth} transactions={transactions} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} subcategories={subcategories} onLogTransactionClick={() => setIsFormVisible(true)} />
       {!isFormVisible && <button type="button" onClick={() => setIsFormVisible(true)} aria-label="Log Transaction" className={`fixed bottom-6 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-green-accent text-white shadow-frap transition-colors hover:bg-sb-green md:bottom-8 md:right-8 ${FOCUS}`}>
         <PlusIcon className="h-6 w-6" />
       </button>}
-      {isFormVisible && <TransactionForm addTransaction={addTransaction} subcategories={subcategories} addSubcategory={addSubcategory} onClose={() => setIsFormVisible(false)} selectedMonth={selectedMonth} />}
+      {isFormVisible && <TransactionForm returnFocusRef={transactionButtonRef} addTransaction={addTransaction} subcategories={subcategories} addSubcategory={addSubcategory} onClose={() => setIsFormVisible(false)} selectedMonth={selectedMonth} />}
       {isApplyRecurringVisible && <ApplyRecurringModal onClose={() => setIsApplyRecurringVisible(false)} onApply={items => applyRecurringToMonth(selectedMonth, items)} rules={activeRecurringRules} month={selectedMonth} subcategories={subcategories} appliedRuleIds={appliedRuleIds} />}
       {editor && (
         <AllocationEditor

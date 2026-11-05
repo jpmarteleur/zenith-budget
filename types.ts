@@ -9,9 +9,7 @@ export interface Transaction {
   subcategory: string;
   amount: number;
   note: string;
-  // Set when the transaction was generated from a recurring rule. Field names here
-  // must match the DB columns exactly — `updateTransaction` spreads the whole object
-  // straight into a PostgREST update, so a camelCase name would fail at runtime.
+  // Database provenance for a generated transaction. Editing preserves this link.
   recurring_id?: string | null;
 }
 
