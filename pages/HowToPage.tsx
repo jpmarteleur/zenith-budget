@@ -2,9 +2,9 @@ import React from 'react';
 
 const steps = [
   { title: 'Set up your month', text: 'Open the month dropdown on Budget and choose Create new month at the top. Copy a previous plan, keep its subcategories with planned amounts reset to zero, or start from scratch. Copying brings over the plan, never its transaction history, and cannot overwrite an existing month.' },
-  { title: 'Give your income a job', text: 'Open Plan and expand a category. Add income sources and subcategories, then select a row to edit its planned amount. Income, Expenses, Bills, Savings, Investments, and Debts each have their own place. Aim for zero left to allocate.' },
+  { title: 'Give your income a job', text: 'Expand a category on Budget. Add income sources and subcategories, then use Edit beside an existing subcategory to change its planned amount. Income, Expenses, Bills, Savings, Investments, and Debts each have their own place. Aim for zero left to allocate.' },
   { title: 'Record everyday activity', text: 'Use Add transaction, then Quick entry for AI suggestions or Manual to enter the details yourself. Review the category, subcategory, amount, date, and note before saving. Transaction dates stay within the selected budget month.' },
-  { title: 'Track and adjust', text: 'Open Track to compare recorded activity with your plan. Expand categories for the details. Transaction history sits below both views, where you can edit or delete entries. Adjust allocations in Plan as your needs change.' },
+  { title: 'Track and adjust', text: 'Compare recorded activity with your plan on Budget. Expand categories for the details and use Edit to adjust allocations. Transaction history sits below the categories, where you can edit or delete entries.' },
 ];
 
 const HowToPage: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => (
@@ -19,11 +19,11 @@ const HowToPage: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => (
       <p className="mt-2">Zero-based budgeting means: plan how your income will cover expenses, bills, savings, investments, and debt payments. A fully allocated plan means every dollar has a job, not that your bank account is empty.</p>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl bg-green-mint/40 p-4">
-          <h3 className="font-semibold text-house-green">Plan: left to allocate</h3>
+          <h3 className="font-semibold text-house-green">Left to allocate</h3>
           <p className="mt-1">Planned income minus planned allocations. Aim for zero, then adjust as needed.</p>
         </div>
         <div className="rounded-xl bg-cream p-4">
-          <h3 className="font-semibold text-house-green">Track: recorded cash flow</h3>
+          <h3 className="font-semibold text-house-green">Recorded cash flow</h3>
           <p className="mt-1">Recorded income minus recorded outflows. This reflects your entries, not your bank balance.</p>
         </div>
       </div>
@@ -44,7 +44,7 @@ const HowToPage: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => (
       <div className="mt-5 space-y-5 divide-y divide-black/10">
         <div>
           <h3 className="font-semibold text-black/87">Keep some activity outside your totals</h3>
-          <p className="mt-1">In Plan, edit a subcategory and clear Include in budget totals. Its planned and recorded amounts are excluded from category totals and cash flow, while its activity remains visible in the subcategory and transaction history. This can help with reimbursable or savings-funded purchases.</p>
+          <p className="mt-1">Expand a category, edit a subcategory and clear Include in budget totals. Its planned and recorded amounts are excluded from category totals and cash flow, while its activity remains visible in the subcategory and transaction history. This can help with reimbursable or savings-funded purchases.</p>
         </div>
         <div className="pt-5">
           <h3 className="font-semibold text-black/87">Set up regular transactions</h3>

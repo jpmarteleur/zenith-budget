@@ -16,7 +16,6 @@ interface BudgetCategorySectionProps {
   actual: number;
   subcategories: Subcategory[];
   actuals: Record<string, number>;
-  view: 'track' | 'plan';
   expanded: boolean;
   onToggle: () => void;
   onEdit: (sub: Subcategory) => void;
@@ -38,7 +37,7 @@ const Activity: React.FC<{ category: CategoryName; name: string; expected: numbe
   </span>;
 };
 
-const BudgetCategorySection: React.FC<BudgetCategorySectionProps> = ({ category, expected, actual, subcategories, actuals, view, expanded, onToggle, onEdit, onAdd, headerRef }) => {
+const BudgetCategorySection: React.FC<BudgetCategorySectionProps> = ({ category, expected, actual, subcategories, actuals, expanded, onToggle, onEdit, onAdd, headerRef }) => {
   const { formatCurrency } = useSettings();
   const id = useId();
   const color = getCategoryColor(category).hex;
@@ -52,10 +51,10 @@ const BudgetCategorySection: React.FC<BudgetCategorySectionProps> = ({ category,
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-              <span className="text-base font-semibold text-black/87">{view === 'plan' && category === 'Income' ? 'Expected income' : category}</span>
-              <span className="text-sm font-semibold tabular-nums text-house-green sm:text-base">{view === 'plan' ? formatCurrency(expected) : `${formatCurrency(activity.amount)} ${activity.label}`}</span>
+              <span className="text-base font-semibold text-black/87">{category}</span>
+              <span className="text-sm font-semibold tabular-nums text-house-green sm:text-base">{formatCurrency(activity.amount)} {activity.label}</span>
             </span>
-            {view === 'track' ? <Activity category={category} name={category} expected={expected} actual={actual} /> : <span className="mt-1 block text-xs font-normal text-black/60 sm:text-sm">{category === 'Income' ? 'Your planned income sources' : 'Planned total'}</span>}
+            <Activity category={category} name={category} expected={expected} actual={actual} />
             <span className="mt-2 block text-xs font-medium text-house-green">{expanded ? 'Hide details' : `Show details (${subcategories.length})`}</span>
           </span>
           <span aria-hidden="true" className="mt-2 shrink-0 text-black/60">
@@ -64,21 +63,13 @@ const BudgetCategorySection: React.FC<BudgetCategorySectionProps> = ({ category,
         </button>
       </h3>
       <div id={id} hidden={!expanded} className="mb-3 ml-10 rounded-xl border-l-2 bg-black/5 px-3 py-1 sm:ml-12" style={{ borderColor: color }}>
-        {subcategories.length === 0 && <p className="py-3 text-sm leading-relaxed text-black/60">{view === 'plan' ? 'Add a subcategory to start planning here.' : 'No subcategories yet. Add them in Plan.'}</p>}
+        {subcategories.length === 0 && <p className="py-3 text-sm leading-relaxed text-black/60">Add an income source or subcategory to start planning here.</p>}
         <ul className="divide-y divide-black/5">
           {subcategories.map(sub => {
             const row = categoryActivity(category, sub.expected, actuals[sub.name] || 0);
             return <li key={sub.id} className="py-3">
-              {view === 'plan' ? (
-                <button type="button" onClick={() => onEdit(sub)} aria-label={`Edit ${sub.name} in ${category}`} className={`flex min-h-11 w-full items-center gap-3 rounded-lg py-1 pl-1 pr-2 text-left hover:bg-black/5 ${FOCUS}`}>
-                  <span className="min-w-0 flex-1 break-words text-sm font-medium text-black/87">{sub.name}{sub.excludeFromBudget && <span className="mt-1 block text-xs font-normal text-black/60">Excluded from totals</span>}</span>
-                  <span className="shrink-0 text-sm font-medium tabular-nums text-black/87">{formatCurrency(sub.expected)}</span>
-                  <span aria-hidden="true" className="shrink-0 text-black/60">
-                    <PencilIcon className="h-4 w-4" />
-                  </span>
-                </button>
-              ) : (
-                <div className="px-1">
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1 px-1">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
                     <span className="min-w-0 break-words font-medium text-black/87">{sub.name}</span>
                     <span className={`font-medium tabular-nums ${row.delta > 0 ? 'text-green-accent' : row.delta < 0 ? 'text-danger' : 'text-black/60'}`}>{formatCurrency(row.amount)} {row.label}</span>
@@ -86,14 +77,17 @@ const BudgetCategorySection: React.FC<BudgetCategorySectionProps> = ({ category,
                   {sub.excludeFromBudget && <p className="mt-1 text-xs text-black/60">Excluded from totals · activity still shown</p>}
                   <Activity compact category={category} name={sub.name} expected={sub.expected} actual={actuals[sub.name] || 0} />
                 </div>
-              )}
+                <button type="button" onClick={() => onEdit(sub)} aria-label={`Edit ${sub.name} in ${category}`} className={`inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-house-green hover:bg-green-mint/40 ${FOCUS}`}>
+                  <PencilIcon className="h-3.5 w-3.5" /><span>Edit</span>
+                </button>
+              </div>
             </li>;
           })}
         </ul>
-        {view === 'plan' && <button type="button" onClick={onAdd} className={`mt-1 inline-flex min-h-11 items-center gap-2 rounded-lg px-1 text-sm font-semibold text-green-accent hover:bg-green-mint/30 ${FOCUS}`}>
+        <button type="button" onClick={onAdd} className={`mt-1 inline-flex min-h-11 items-center gap-2 rounded-lg px-1 text-sm font-semibold text-green-accent hover:bg-green-mint/30 ${FOCUS}`}>
           <span aria-hidden="true">
             <PlusIcon className="h-4 w-4" />
-          </span>{category === 'Income' ? 'Add income source' : 'Add subcategory'}</button>}
+          </span>{category === 'Income' ? 'Add income source' : 'Add subcategory'}</button>
       </div>
     </section>
   );

@@ -43,12 +43,19 @@ const TransactionFields: React.FC<TransactionFieldsProps> = ({
 
   return (
     <div className="space-y-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-start gap-3">
       <div>
         <div className="mb-1 flex items-baseline justify-between gap-3">
           <label htmlFor={`${id}-amount`} className="text-sm font-medium text-black/87">Amount</label>
           <span className="text-xs text-black/60">{currency.code}</span>
         </div>
         <input ref={amountRef} id={`${id}-amount`} type="number" inputMode="decimal" step="any" required value={draft.amount} onChange={event => onChange({ amount: event.target.value })} className={`min-h-11 w-full min-w-0 rounded-xl border border-black/50 bg-white px-3 py-2 text-lg font-semibold tabular-nums text-black/87 ${TRANSACTION_FOCUS}`} />
+      </div>
+      <div>
+        <label htmlFor={`${id}-date`} className="mb-1 block text-sm font-medium text-black/87">Date</label>
+        <input id={`${id}-date`} type="date" required min={bounds.min} max={bounds.max} value={draft.date} onChange={event => onChange({ date: event.target.value })} className={FIELD} aria-describedby={`${id}-date-hint`} />
+        <p id={`${id}-date-hint`} className="sr-only">Keep this transaction within the selected budget month.</p>
+      </div>
       </div>
       <div>
         <label htmlFor={`${id}-category`} className="mb-1 block text-sm font-medium text-black/87">Category</label>
@@ -70,20 +77,19 @@ const TransactionFields: React.FC<TransactionFieldsProps> = ({
           </div>
         ) : (
           <>
-            <select ref={selectRef} id={`${id}-subcategory`} value={draft.subcategory} onChange={event => onChange({ subcategory: event.target.value })} required className={FIELD}>
+            <select ref={selectRef} id={`${id}-subcategory`} value={draft.subcategory} onChange={event => {
+              if (event.target.value === '__create_subcategory__') { onCreatingChange?.(true); onChange({ subcategory: '' }); }
+              else onChange({ subcategory: event.target.value });
+            }} required className={FIELD}>
               <option value="" disabled>Choose a subcategory</option>
+              {onCreatingChange && <option value="__create_subcategory__">Create a subcategory…</option>}
               {historical && <option value={retainedSubcategory.name}>{retainedSubcategory.name} (from history)</option>}
               {onCreatingChange && !historical && draft.subcategory && !options.some(sub => sub.name === draft.subcategory) && <option value={draft.subcategory}>{draft.subcategory}</option>}
               {options.map(sub => <option key={sub.id} value={sub.name}>{sub.name}</option>)}
             </select>
-            {onCreatingChange && <button type="button" onClick={() => { onCreatingChange(true); onChange({ subcategory: '' }); }} className={`min-h-11 rounded-lg px-1 text-xs font-semibold text-green-accent ${TRANSACTION_FOCUS}`}>Create a subcategory</button>}
+
           </>
         )}
-      </div>
-      <div>
-        <label htmlFor={`${id}-date`} className="mb-1 block text-sm font-medium text-black/87">Date</label>
-        <input id={`${id}-date`} type="date" required min={bounds.min} max={bounds.max} value={draft.date} onChange={event => onChange({ date: event.target.value })} className={FIELD} aria-describedby={`${id}-date-hint`} />
-        <p id={`${id}-date-hint`} className="mt-2 text-xs text-black/60">Keep this transaction within the selected budget month.</p>
       </div>
       <div>
         <label htmlFor={`${id}-note`} className="mb-1 block text-sm font-medium text-black/87">Description</label>
