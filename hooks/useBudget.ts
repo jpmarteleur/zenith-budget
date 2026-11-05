@@ -6,6 +6,8 @@ import { supabase } from '../services/supabaseClient';
 import { currentMonthKey, monthDayToDate, resolveSourceMonth } from '../utils/dates';
 import { transactionInputError, type TransactionInput } from '../utils/transactions';
 import type { User } from '@supabase/supabase-js';
+import { recurringItemsError, recurringWriteFailure } from '../utils/recurring';
+import type { RecurringWriteResult } from '../utils/recurring';
 
 interface MonthData {
     transactions: Transaction[];
@@ -153,6 +155,11 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
     // same stale snapshot and the second would clobber the first. Guest writes read
     // this instead of the `allData` closure.
     const allDataRef = useRef<AllBudgetData>(allData);
+    const recurringOwner = useRef({ id: currentUser?.id });
+    if (recurringOwner.current.id !== currentUser?.id) recurringOwner.current = { id: currentUser?.id };
+    const owner = recurringOwner.current;
+    const recurringWrites = useRef(new Set<string>());
+    const uncertainRecurringWrites = useRef(new Set<string>());
     const currentUserIdRef = useRef(currentUser?.id);
     currentUserIdRef.current = currentUser?.id;
 
@@ -529,70 +536,60 @@ export const useBudget = (selectedMonth: string, currentUser: User | null) => {
     // Apply confirmed recurring items to a month that already exists — for months
     // created before a rule was added. Takes `month` explicitly rather than using
     // `selectedMonth` so it can never write to the wrong month.
-    const applyRecurringToMonth = useCallback(async (month: string, items: RecurringApplyItem[]) => {
+    const applyRecurringToMonth = useCallback(async (month: string, items: RecurringApplyItem[]): Promise<RecurringWriteResult> => {
         const monthData = allDataRef.current[month];
-        if (!currentUser || !monthData || items.length === 0) return;
-
+        if (!currentUser || recurringOwner.current !== owner || !monthData || !isLoaded || loadError) return { error: 'Load this budget month before applying recurring transactions.' };
+        const key = `${currentUser.id}:${month}`;
+        if (uncertainRecurringWrites.current.has(key)) return { error: 'Reload and check history before applying recurring transactions again.', uncertain: true };
+        if (recurringWrites.current.has(key)) return { error: 'Recurring transactions are already being added. Please wait.' };
+        const validation = recurringItemsError(items);
+        if (validation) return { error: validation };
+        const applied = new Set(monthData.transactions.map(transaction => transaction.recurring_id));
+        const pendingItems = items.filter(item => !applied.has(item.rule_id));
+        if (!pendingItems.length) return { error: null };
         const nextSubcategories: Subcategories = JSON.parse(JSON.stringify(monthData.subcategories));
-        const { resolved, created } = backfillSubcategories(nextSubcategories, items);
-
-        if (currentUser.id === GUEST_USER_ID) {
-            const guestTransactions: Transaction[] = resolved.map(item => ({
-                id: crypto.randomUUID(),
-                date: monthDayToDate(month, item.day_of_month),
-                category: item.category,
-                subcategory: item.subcategory,
-                amount: item.amount,
-                note: item.note,
-                recurring_id: item.rule_id,
+        const { resolved, created } = backfillSubcategories(nextSubcategories, pendingItems);
+        const stillCurrent = () => recurringOwner.current === owner && !!allDataRef.current[month];
+        const fail = (error?: { code?: string } | null, status = 0) => {
+            const result = recurringWriteFailure('these recurring transactions', error, status);
+            if (result.uncertain) uncertainRecurringWrites.current.add(key);
+            return result;
+        };
+        recurringWrites.current.add(key);
+        try {
+            const rows = resolved.map(item => ({
+                user_id: currentUser.id, month, date: monthDayToDate(month, item.day_of_month),
+                category: item.category, subcategory: item.subcategory, amount: item.amount,
+                note: item.note, recurring_id: item.rule_id,
             }));
-
-            setGuestDataInStorage(commitAllData(prev => ({
-                ...prev,
-                [month]: {
-                    subcategories: nextSubcategories,
-                    transactions: [...guestTransactions, ...(prev[month]?.transactions || [])].sort(byDateDesc),
-                }
-            })));
-            return;
-        }
-
-        // Subcategories first, so every new transaction has a row to display in.
-        if (created) {
-            const { error } = await supabase.from('budgets')
-                .update({ subcategories: nextSubcategories })
-                .match({ user_id: currentUser.id, month });
-            if (error) {
-                console.error("Error adding subcategories for recurring transactions:", error);
-                return;
+            if (currentUser.id === GUEST_USER_ID) {
+                const transactions: Transaction[] = rows.map(({ user_id, month: targetMonth, ...row }) => ({ ...row, id: crypto.randomUUID() }));
+                const next = { ...allDataRef.current, [month]: { subcategories: nextSubcategories, transactions: [...transactions, ...monthData.transactions].sort(byDateDesc) } };
+                if (!setGuestDataInStorage(next)) return { error: 'Could not save these transactions on your device. Check browser storage and try again.' };
+                commitAllData(next);
+                return { error: null };
             }
-        }
-
-        const rows = resolved.map(item => ({
-            user_id: currentUser.id,
-            month,
-            date: monthDayToDate(month, item.day_of_month),
-            category: item.category,
-            subcategory: item.subcategory,
-            amount: item.amount,
-            note: item.note,
-            recurring_id: item.rule_id,
-        }));
-
-        const { data, error } = await supabase.from('transactions').insert(rows).select();
-        if (error || !data) {
-            console.error("Error adding recurring transactions:", error);
-            return;
-        }
-
-        commitAllData(prev => ({
-            ...prev,
-            [month]: {
-                subcategories: nextSubcategories,
-                transactions: [...(data as Transaction[]), ...(prev[month]?.transactions || [])].sort(byDateDesc),
+            if (created) {
+                const { data, error, status } = await supabase.from('budgets')
+                    .update({ subcategories: nextSubcategories }).match({ user_id: currentUser.id, month }).select('month');
+                if (error) return fail(error, status);
+                if (!Array.isArray(data)) return fail();
+                if (data.length !== 1 || data[0].month !== month) return { error: 'No updated budget was returned. Reload this month before trying again.' };
+                if (!stillCurrent()) return fail();
+                // Keep confirmed metadata if the subsequent transaction insert fails.
+                commitAllData(prev => ({ ...prev, [month]: { ...prev[month], subcategories: nextSubcategories } }));
             }
-        }));
-    }, [currentUser, commitAllData, setGuestDataInStorage]);
+            if (!stillCurrent()) return fail();
+            const { data, error, status } = await supabase.from('transactions').insert(rows).select();
+            if (error) return fail(error, status);
+            if (!data || data.length !== rows.length || data.some(row => typeof row.id !== 'string') || !stillCurrent()) return fail();
+            commitAllData(prev => ({ ...prev, [month]: {
+                ...prev[month], transactions: [...(data as Transaction[]), ...prev[month].transactions].sort(byDateDesc),
+            } }));
+            return { error: null };
+        } catch { return fail(); }
+        finally { recurringWrites.current.delete(key); }
+    }, [currentUser, owner, isLoaded, loadError, commitAllData, setGuestDataInStorage]);
 
     const deleteMonth = useCallback(async (monthToDelete: string): Promise<{ error: string | null }> => {
         const prevAllData = allDataRef.current;

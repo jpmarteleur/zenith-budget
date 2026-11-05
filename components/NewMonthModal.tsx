@@ -3,7 +3,7 @@ import type { RecurringRule, RecurringApplyItem, Subcategories } from '../types'
 import type { CreateMonthResult } from '../hooks/useBudget';
 import { isDueOn, resolveSourceMonth } from '../utils/dates';
 import Dialog from './Dialog';
-import RecurringChecklist, { buildInitialChecklistState, checklistToItems } from './RecurringChecklist';
+import RecurringChecklist, { buildInitialChecklistState, checklistToItems, checklistError } from './RecurringChecklist';
 import type { ChecklistState } from './RecurringChecklist';
 
 const EMPTY_SUBCATEGORIES: Subcategories = {
@@ -69,6 +69,8 @@ const NewMonthModal: React.FC<NewMonthModalProps> = ({
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!validMonth || monthAlreadyExists || creatingRef.current || monthCreated) return;
+    const validation = checklistError(dueRules, checklist);
+    if (validation) { setError(validation); return; }
     creatingRef.current = true;
     setIsCreating(true);
     setError(null);

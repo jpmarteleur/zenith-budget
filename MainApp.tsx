@@ -22,10 +22,10 @@ const MainApp: React.FC = () => {
 
   // Materialises recurring rules into the *current* month as each one's day arrives.
   // Deliberately not tied to selectedMonth: browsing an old month must never write to it.
-  useRecurringAutoApply({
+  const recurringApplyError = useRecurringAutoApply({
     currentUser,
     activeRules: recurringData.activeRules,
-    isRecurringLoaded: recurringData.isRecurringLoaded,
+    isRecurringLoaded: recurringData.isRecurringLoaded && !recurringData.recurringLoadError,
     isBudgetLoaded: budgetData.isLoaded && !budgetData.loadError,
     allData: budgetData.allData,
     applyRecurringToMonth: budgetData.applyRecurringToMonth,
@@ -74,6 +74,14 @@ const MainApp: React.FC = () => {
         isBudgetLoaded={budgetData.isLoaded && !budgetData.loadError}
       />
       <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl px-4 pb-24 pt-6 focus:outline-none sm:px-6 lg:px-8">
+        {activePage !== 'Settings' && recurringData.recurringLoadError && <div role="alert" className="mx-auto mb-6 max-w-4xl rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm leading-relaxed text-danger">
+          <p>Recurring rules could not be loaded. Automatic application and recurring suggestions are unavailable.</p>
+          <button type="button" onClick={() => setActivePage('Settings')} className="mt-2 min-h-11 rounded-lg font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-house-green">Open Settings to retry</button>
+        </div>}
+        {recurringApplyError && <div role="alert" className="mx-auto mb-6 max-w-4xl rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm leading-relaxed text-danger">
+          <p>Automatic recurring application needs attention. {recurringApplyError}</p>
+          <button type="button" onClick={() => window.location.reload()} className="mt-2 min-h-11 rounded-lg font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-house-green">Reload activity</button>
+        </div>}
         {renderPage()}
       </main>
     </div>

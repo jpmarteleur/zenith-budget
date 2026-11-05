@@ -7,7 +7,6 @@ import AllocationEditor from '../components/AllocationEditor';
 import BudgetCategorySection from '../components/BudgetCategorySection';
 import { CATEGORY_NAMES } from '../types';
 import type { CategoryName, RecurringRule, Subcategory } from '../types';
-import { CARD_STYLE, BTN_OUTLINE } from '../constants';
 import PlusIcon from '../components/icons/PlusIcon';
 import CheckIcon from '../components/icons/CheckIcon';
 import { isDueOn } from '../utils/dates';
@@ -104,9 +103,9 @@ const BudgetPage: React.FC<BudgetPageProps> = props => {
           {view === 'track' && <p className="text-lg font-semibold tabular-nums text-house-green">{formatCurrency(remainingToSpend)}</p>}
         </div>
       </div>
-      {pendingRules.length > 0 && <div className={`${CARD_STYLE} flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between`}>
+      {pendingRules.length > 0 && <div className="flex flex-col gap-3 rounded-2xl border border-black/10 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-black/70">{pendingRules.length === 1 ? "1 recurring transaction hasn't been added to this month yet." : `${pendingRules.length} recurring transactions haven't been added to this month yet.`}</p>
-        <button type="button" onClick={() => setIsApplyRecurringVisible(true)} className={`${BTN_OUTLINE} shrink-0`}>Apply recurring ({pendingRules.length})</button>
+        <button type="button" onClick={() => setIsApplyRecurringVisible(true)} className={`min-h-11 shrink-0 rounded-xl border border-house-green px-4 py-2 text-sm font-semibold text-house-green hover:bg-green-mint ${FOCUS}`}>Apply recurring ({pendingRules.length})</button>
       </div>}
       <TransactionHistory addButtonRef={transactionButtonRef} selectedMonth={selectedMonth} transactions={transactions} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} subcategories={subcategories} onLogTransactionClick={() => setIsFormVisible(true)} />
       {!isFormVisible && <button type="button" onClick={() => setIsFormVisible(true)} aria-label="Log Transaction" className={`fixed bottom-6 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-green-accent text-white shadow-frap transition-colors hover:bg-sb-green md:bottom-8 md:right-8 ${FOCUS}`}>

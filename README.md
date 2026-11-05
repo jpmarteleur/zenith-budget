@@ -67,7 +67,7 @@ Throughout this project I built comprehensive full-stack development skills:
 - **AI Transaction Parsing**: Natural language expense input powered by Google Gemini
 - **Multi-Month Management**: Track budgets across different time periods
 - **Customizable Subcategories**: Manage your own items within six budget categories
-- **Recurring Transactions**: Manage rules in Settings and review due items during month setup
+- **Recurring Transactions**: Add, edit, pause, or delete monthly rules in Settings. Review due items and amount overrides in month setup or Budget. Due rules are also applied to an existing current-month budget while using the app. Rule changes keep historical transactions; failures retain inputs or ask you to reload when a write cannot be confirmed
 - **Secure Authentication**: User accounts with Supabase Auth
 - **Responsive Design**: Works seamlessly on desktop and mobile devices
 - **Guest Mode**: Try the app with local data kept separate from signed-in budgets

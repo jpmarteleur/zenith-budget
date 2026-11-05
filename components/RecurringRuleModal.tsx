@@ -1,177 +1,106 @@
-import React, { useState, useEffect } from 'react';
-import { CARD_STYLE, BTN_GHOST, BTN_PRIMARY } from '../constants';
-import XIcon from './icons/XIcon';
+import React, { useId, useRef, useState } from 'react';
 import type { RecurringRule, CategoryName, Subcategories } from '../types';
 import { CATEGORY_NAMES } from '../types';
-import SubcategorySelect from './SubcategorySelect';
-import SelectField from './SelectField';
+import type { RecurringRuleInput, RecurringWriteResult } from '../utils/recurring';
+import { recurringInputError } from '../utils/recurring';
+import Dialog from './Dialog';
 
+const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-house-green';
+const FIELD = `min-h-12 w-full min-w-0 rounded-xl border border-black/50 bg-white px-3 py-3 text-base ${FOCUS}`;
 interface RecurringRuleModalProps {
   onClose: () => void;
-  onSave: (rule: Omit<RecurringRule, 'id'>) => void;
-  rule?: RecurringRule;      // absent when adding
+  onSave: (rule: RecurringRuleInput) => Promise<RecurringWriteResult>;
+  rule?: RecurringRule;
   subcategories: Subcategories;
+  returnFocusRef: React.RefObject<HTMLElement | null>;
 }
 
-const RecurringRuleModal: React.FC<RecurringRuleModalProps> = ({ onClose, onSave, rule, subcategories }) => {
+const RecurringRuleModal: React.FC<RecurringRuleModalProps> = ({ onClose, onSave, rule, subcategories, returnFocusRef }) => {
+  const id = useId();
   const [category, setCategory] = useState<CategoryName>(rule?.category ?? 'Bills');
   const [subcategory, setSubcategory] = useState(rule?.subcategory ?? '');
+  const [creating, setCreating] = useState(false);
   const [amount, setAmount] = useState(rule ? String(rule.amount) : '');
-  const [dayOfMonth, setDayOfMonth] = useState(rule ? String(rule.day_of_month) : '1');
+  const [day, setDay] = useState(rule ? String(rule.day_of_month) : '1');
   const [note, setNote] = useState(rule?.note ?? '');
   const [active, setActive] = useState(rule?.active ?? true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
-  }, []);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    const trimmedSubcategory = subcategory.trim();
-    const parsedAmount = parseFloat(amount);
-    const parsedDay = parseInt(dayOfMonth, 10);
-
-    if (!trimmedSubcategory || !amount) {
-      setError('Please fill out all required fields.');
-      return;
-    }
-    if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
-      setError('Amount must be zero or more.');
-      return;
-    }
-    if (!Number.isFinite(parsedDay) || parsedDay < 1 || parsedDay > 31) {
-      setError('Day of month must be between 1 and 31.');
-      return;
-    }
-
-    onSave({
-      category,
-      subcategory: trimmedSubcategory,
-      amount: parsedAmount,
-      // Clamped here too — the input's min/max attributes are only advisory.
-      day_of_month: Math.min(Math.max(parsedDay, 1), 31),
-      note: note.trim(),
-      active,
-    });
-    onClose();
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const [uncertain, setUncertain] = useState(false);
+  const options = subcategories[category] || [];
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (busyRef.current || uncertain) return;
+    const input = { category, subcategory, amount: amount.trim() ? Number(amount) : NaN, day_of_month: day.trim() ? Number(day) : NaN, note, active };
+    const validation = recurringInputError(input);
+    if (validation) { setError(validation); return; }
+    busyRef.current = true; setBusy(true); setError(null);
+    try {
+      const result = await onSave(input);
+      if (result.error) { setError(result.error); setUncertain(!!result.uncertain); }
+      else onClose();
+    } catch { setError('Could not confirm this change. Reload and check your rules before trying again.'); setUncertain(true); }
+    finally { busyRef.current = false; setBusy(false); }
   };
-
-  const inputClass = "bg-white border border-black/15 rounded-lg py-2 px-3 text-black/87 focus:outline-none focus:ring-2 focus:ring-green-accent/40";
-
-  return (
-    <div className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
-      <div className={`${CARD_STYLE} w-full max-w-lg p-4 sm:p-6 animate-fade-in my-auto`} onClick={e => e.stopPropagation()}>
-        <style>{`
-            @keyframes fade-in {
-                from { opacity: 0; transform: scale(0.95); }
-                to { opacity: 1; transform: scale(1); }
-            }
-            .animate-fade-in { animation: fade-in 0.2s ease-out; }
-        `}</style>
-
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-black/87">
-            {rule ? 'Edit Recurring Transaction' : 'New Recurring Transaction'}
-          </h3>
-          <button onClick={onClose} className="text-black/40 hover:text-black/70" aria-label="Close">
-            <XIcon className="w-6 h-6" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex flex-col">
-            <label htmlFor="rec-category" className="text-sm font-medium text-black/60 mb-1">Category</label>
-            <SelectField
-              id="rec-category"
-              value={category}
-              onChange={e => { setCategory(e.target.value as CategoryName); setSubcategory(''); }}
-            >
-              {CATEGORY_NAMES.map(c => <option key={c} value={c}>{c}</option>)}
-            </SelectField>
-          </div>
-
-          <div className="flex flex-col">
-            <label htmlFor="rec-subcategory" className="text-sm font-medium text-black/60 mb-1">Subcategory</label>
-            {/* keyed on the category so switching categories resets the create-new state */}
-            <SubcategorySelect
-              key={category}
-              id="rec-subcategory"
-              value={subcategory}
-              onChange={setSubcategory}
-              options={subcategories[category] || []}
-              required
-            />
-          </div>
-
-          <div className="flex flex-col">
-            <label htmlFor="rec-amount" className="text-sm font-medium text-black/60 mb-1">Amount</label>
-            <input
-              type="number"
-              id="rec-amount"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              required
-              step="0.01"
-              min="0"
-              placeholder="0.00"
-              className={inputClass}
-            />
-          </div>
-
-          <div className="flex flex-col">
-            <label htmlFor="rec-day" className="text-sm font-medium text-black/60 mb-1">Day of month</label>
-            <input
-              type="number"
-              id="rec-day"
-              value={dayOfMonth}
-              onChange={e => setDayOfMonth(e.target.value)}
-              required
-              min="1"
-              max="31"
-              className={inputClass}
-            />
-            <p className="text-xs text-black/40 mt-1">If a month is shorter, this moves to the last day.</p>
-          </div>
-
-          <div className="flex flex-col md:col-span-2">
-            <label htmlFor="rec-note" className="text-sm font-medium text-black/60 mb-1">Note (Optional)</label>
-            <input
-              type="text"
-              id="rec-note"
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              placeholder="e.g. Monthly subscription"
-              className={inputClass}
-            />
-          </div>
-
-          <div className="md:col-span-2 flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="rec-active"
-              checked={active}
-              onChange={e => setActive(e.target.checked)}
-              className="accent-green-accent w-4 h-4"
-            />
-            <label htmlFor="rec-active" className="text-sm text-black/70">
-              Active — offer this when creating a new month
-            </label>
-          </div>
-
-          {error && <p className="text-danger text-sm text-center md:col-span-2">{error}</p>}
-
-          <div className="md:col-span-2 mt-4 flex justify-end space-x-4">
-            <button type="button" onClick={onClose} className={BTN_GHOST}>Cancel</button>
-            <button type="submit" className={BTN_PRIMARY}>{rule ? 'Save Changes' : 'Add Rule'}</button>
-          </div>
-        </form>
-      </div>
+  return <Dialog title={rule ? 'Edit recurring transaction' : 'New recurring transaction'} description="Set the monthly details. Your planned allocations stay unchanged." onClose={onClose} busy={busy} returnFocusRef={returnFocusRef} footer={
+    <div className="flex flex-col gap-2">
+      {uncertain ? <button type="button" onClick={() => window.location.reload()} className={`min-h-12 rounded-xl bg-house-green px-4 py-3 text-sm font-semibold text-white ${FOCUS}`}>Reload rules</button>
+        : <button type="submit" form={id} disabled={busy} className={`min-h-12 rounded-xl bg-house-green px-4 py-3 text-sm font-semibold text-white hover:bg-green-uplift disabled:opacity-50 ${FOCUS}`}>{busy ? 'Saving…' : rule ? 'Save changes' : 'Add rule'}</button>}
+      <button type="button" onClick={onClose} disabled={busy} className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold text-black/70 hover:bg-black/5 disabled:opacity-50 ${FOCUS}`}>{uncertain ? 'Close' : 'Cancel'}</button>
     </div>
-  );
+  }>
+    {error && <p role="alert" className="mb-5 rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm leading-relaxed text-danger">{error}</p>}
+    <form id={id} onSubmit={submit}>
+      <fieldset disabled={busy || uncertain} className="grid min-w-0 grid-cols-1 gap-5 disabled:opacity-60 sm:grid-cols-2">
+        <div className="min-w-0">
+          <label htmlFor={`${id}-category`} className="mb-2 block text-sm font-medium">Category</label>
+          <select id={`${id}-category`} value={category} onChange={e => { setCategory(e.target.value as CategoryName); setSubcategory(''); setCreating(false); }} className={FIELD}>
+            {CATEGORY_NAMES.map(category => <option key={category}>{category}</option>)}
+          </select>
+        </div>
+        <div className="min-w-0">
+          <label htmlFor={`${id}-subcategory`} className="mb-2 block text-sm font-medium">{creating ? 'New subcategory name' : 'Subcategory'}</label>
+          {creating ? <div>
+            <input autoFocus id={`${id}-subcategory`} value={subcategory} onChange={e => setSubcategory(e.target.value)} className={FIELD} required />
+            <button type="button" onClick={() => { setCreating(false); setSubcategory(''); }} className={`mt-1 min-h-11 rounded-lg text-sm font-semibold text-green-accent ${FOCUS}`}>Choose existing</button>
+          </div>
+            : <select id={`${id}-subcategory`} value={subcategory} onChange={e => {
+              if (e.target.selectedOptions[0].dataset.create) { setCreating(true); setSubcategory(''); }
+              else setSubcategory(e.target.value);
+            }} className={FIELD} required>
+              <option value="" disabled>Select or create…</option>
+              {subcategory && !options.some(option => option.name === subcategory) && <option value={subcategory}>{subcategory}</option>}
+              {options.map(option => <option key={option.id} value={option.name}>{option.name}</option>)}
+              <option data-create="true" value="__new_recurring_subcategory__">Create new subcategory…</option>
+            </select>}
+        </div>
+        <div>
+          <label htmlFor={`${id}-amount`} className="mb-2 block text-sm font-medium">Amount</label>
+          <input id={`${id}-amount`} type="number" inputMode="decimal" min="0" step="any" value={amount} onChange={e => setAmount(e.target.value)} className={FIELD} required />
+        </div>
+        <div>
+          <label htmlFor={`${id}-day`} className="mb-2 block text-sm font-medium">Day of month</label>
+          <input id={`${id}-day`} type="number" inputMode="numeric" min="1" max="31" step="1" value={day} onChange={e => setDay(e.target.value)} className={FIELD} required aria-describedby={`${id}-day-help`} />
+          <p id={`${id}-day-help`} className="mt-2 text-xs leading-relaxed text-black/60">Shorter months use their last day.</p>
+        </div>
+        <div className="sm:col-span-2">
+          <label htmlFor={`${id}-note`} className="mb-2 block text-sm font-medium">Note (optional)</label>
+          <input id={`${id}-note`} value={note} onChange={e => setNote(e.target.value)} className={FIELD} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl bg-black/5 p-4">
+            <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} className={`mt-1 h-4 w-4 accent-green-accent ${FOCUS}`} />
+            <span>
+              <span className="block text-sm font-semibold">Active</span>
+              <span className="mt-1 block text-xs leading-relaxed text-black/60">Include in month setup and add when due while the app is open, if a current-month budget exists. Pausing keeps existing transactions.</span>
+            </span>
+          </label>
+        </div>
+        {creating && <p className="text-xs leading-relaxed text-black/60 sm:col-span-2">The subcategory is created with a planned amount of zero when this rule is applied.</p>}
+      </fieldset>
+    </form>
+    {busy && <p role="status" className="sr-only">Saving your recurring rule.</p>}
+  </Dialog>;
 };
-
 export default RecurringRuleModal;

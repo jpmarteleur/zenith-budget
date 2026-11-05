@@ -36,7 +36,7 @@ export type Budget = Record<CategoryName, BudgetItem>;
 export type Subcategories = Record<CategoryName, Subcategory[]>;
 
 // A transaction that repeats on the same day every month — subscriptions, rent, salary.
-// Offered as a checklist whenever a new month is created; never applied silently.
+// Reviewed in month setup or applied when due to an existing current month in the app.
 export interface RecurringRule {
   id: string;
   category: CategoryName;

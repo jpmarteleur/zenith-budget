@@ -22,10 +22,18 @@ export const checklistToItems = (
       rule_id: r.id,
       category: r.category,
       subcategory: r.subcategory,
-      amount: parseFloat(state[r.id].amount) || 0,
+      amount: state[r.id].amount.trim() ? Number(state[r.id].amount) : NaN,
       note: r.note,
       day_of_month: r.day_of_month,
     }));
+
+export const checklistError = (rules: RecurringRule[], state: ChecklistState, skipIds?: Set<string>): string | null => {
+  const invalid = rules.find(rule => {
+    const row = state[rule.id];
+    return row?.checked && !skipIds?.has(rule.id) && (!row.amount.trim() || !Number.isFinite(Number(row.amount)) || Number(row.amount) < 0);
+  });
+  return invalid ? `Enter an amount of zero or more for ${invalid.subcategory}.` : null;
+};
 
 interface RecurringChecklistProps {
   rules: RecurringRule[];          // already filtered to active
@@ -54,7 +62,7 @@ const RecurringChecklist: React.FC<RecurringChecklistProps> = ({
   const allSelected = selectable.length > 0 && selectable.every(r => state[r.id]?.checked);
 
   const total = selectable.reduce(
-    (sum, r) => state[r.id]?.checked ? sum + (parseFloat(state[r.id].amount) || 0) : sum,
+    (sum, r) => state[r.id]?.checked ? sum + (Number.isFinite(Number(state[r.id].amount)) ? Number(state[r.id].amount) : 0) : sum,
     0
   );
   const selectedCount = selectable.filter(r => state[r.id]?.checked).length;
@@ -90,7 +98,7 @@ const RecurringChecklist: React.FC<RecurringChecklistProps> = ({
         </span>
       </div>
 
-      <div className="max-h-56 overflow-y-auto divide-y divide-black/5 border border-black/10 rounded-lg px-3">
+      <div className={`${comfortable ? '' : 'max-h-56 overflow-y-auto'} divide-y divide-black/5 border border-black/10 rounded-xl px-3`}>
         {rules.map(rule => {
           const applied = appliedRuleIds?.has(rule.id) ?? false;
           const row = state[rule.id] ?? { checked: false, amount: String(rule.amount) };
@@ -99,7 +107,7 @@ const RecurringChecklist: React.FC<RecurringChecklistProps> = ({
           return (
             <div
               key={rule.id}
-              className={`flex items-center gap-2 py-2 ${applied ? 'opacity-50' : ''}`}
+              className={`grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-x-2 gap-y-2 py-3 sm:flex sm:items-center ${applied ? 'opacity-60' : ''}`}
               title={applied ? 'Already added to this month' : undefined}
             >
               <label className={comfortable ? 'flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-md' : 'flex shrink-0 items-center'}>
@@ -115,7 +123,7 @@ const RecurringChecklist: React.FC<RecurringChecklistProps> = ({
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className={`text-sm font-medium text-black/87 ${comfortable ? 'break-words' : 'truncate'}`}>{rule.subcategory}</span>
+                  <span className={`text-sm font-medium text-black/87 ${comfortable ? 'min-w-0 max-w-full break-words' : 'truncate'}`}>{rule.subcategory}</span>
                   <span
                     className={`px-2 py-0.5 text-[10px] font-semibold rounded-full flex-shrink-0 ${comfortable ? 'text-black/70' : ''}`}
                     style={{ backgroundColor: `${color}1A`, color: comfortable ? undefined : color }}
@@ -137,13 +145,14 @@ const RecurringChecklist: React.FC<RecurringChecklistProps> = ({
 
               <input
                 type="number"
-                step="0.01"
+                step="any"
                 min="0"
                 value={row.amount}
-                disabled={applied}
+                disabled={applied || !row.checked}
+                required={row.checked && !applied}
                 onChange={e => setRow(rule.id, { amount: e.target.value })}
                 inputMode={comfortable ? 'decimal' : undefined}
-                className={`${comfortable ? 'w-20 min-h-11 border-black/50 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-house-green' : 'w-24 border-black/15 text-sm focus:outline-none focus:ring-2 focus:ring-green-accent/40'} flex-shrink-0 bg-white border rounded-lg py-1 px-2 text-black/87 text-right font-mono disabled:bg-black/5 disabled:cursor-not-allowed`}
+                className={`col-start-2 max-w-full ${comfortable ? 'w-28 min-h-11 border-black/50 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-house-green' : 'w-24 border-black/15 text-sm focus:outline-none focus:ring-2 focus:ring-green-accent/40'} flex-shrink-0 bg-white border rounded-lg py-1 px-2 text-black/87 text-right font-mono disabled:bg-black/5 disabled:cursor-not-allowed`}
                 aria-label={`Amount for ${rule.subcategory}`}
               />
             </div>
