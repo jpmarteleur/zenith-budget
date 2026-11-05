@@ -103,7 +103,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, addSu
 
   const showFields = tab === 'manual' || review;
   return (
-    <Dialog title={review ? 'Review transaction' : 'Add transaction'} description={review ? 'Check the details before saving to this month.' : 'Describe a transaction or enter the details yourself.'} onClose={onClose} busy={!!busy} returnFocusRef={returnFocusRef} footer={
+    <Dialog title={review ? 'Review transaction' : 'Add transaction'} compact description={review ? 'Check the details before saving.' : tab === 'manual' ? 'Enter the details for this month.' : 'Describe your transaction, then review it.'} onClose={onClose} busy={!!busy} returnFocusRef={returnFocusRef} footer={
       <div className="flex flex-col gap-2">
         {uncertain ? <button type="button" onClick={() => window.location.reload()} className={TRANSACTION_PRIMARY}>Reload activity</button> : <button type="submit" form={`${id}-form`} disabled={!!busy || (!showFields && !text.trim())} className={TRANSACTION_PRIMARY}>{busy === 'parse' ? 'Reading transaction…' : busy === 'save' ? 'Saving…' : showFields ? 'Save transaction' : 'Review transaction'}</button>}
         {review && !uncertain && <button type="button" onClick={() => { setReview(false); setError(null); }} disabled={!!busy} className={TRANSACTION_SECONDARY}>Back to quick entry</button>}
@@ -112,7 +112,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, addSu
       </div>
     }>
       {error && <p role="alert" className="mb-5 rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm leading-relaxed text-danger">{error}</p>}
-      {!review && <div role="tablist" aria-label="Transaction entry method" className="mb-5 grid grid-cols-2 gap-1 rounded-xl bg-black/5 p-1">
+      {!review && <div role="tablist" aria-label="Transaction entry method" className="mb-3 grid grid-cols-2 gap-1 rounded-xl bg-black/5 p-1">
         {(['quick', 'manual'] as const).map(method => <button key={method} ref={element => { tabRefs.current[method] = element; }} type="button" role="tab" id={`${id}-${method}`} aria-selected={tab === method} aria-controls={`${id}-entry`} tabIndex={tab === method ? 0 : -1} disabled={!!busy || uncertain} onClick={() => { setTab(method); setError(null); }} onKeyDown={event => {
           if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
           event.preventDefault();
@@ -124,9 +124,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction, addSu
         <form id={`${id}-form`} onSubmit={showFields ? handleSave : handleParse}>
           <fieldset disabled={!!busy || uncertain} className="min-w-0 disabled:opacity-60">
             {showFields ? <TransactionFields amountRef={amountRef} draft={draft} onChange={changeDraft} selectedMonth={selectedMonth} subcategories={subcategories} creatingNew={creatingNew} onCreatingChange={changeCreating} plannedAmount={plannedAmount} onPlannedAmountChange={tab === 'quick' ? setPlannedAmount : undefined} /> : <div>
-              <label htmlFor={`${id}-text`} className="mb-3 block text-base font-semibold text-black/87">What did you spend or receive?</label>
-              <input ref={textRef} id={`${id}-text`} required value={text} onChange={event => setText(event.target.value)} placeholder="10 Chipotle" className={`min-h-24 w-full min-w-0 rounded-xl border border-black/50 bg-white px-4 py-5 text-xl text-black/87 placeholder:text-black/50 ${TRANSACTION_FOCUS}`} />
-              <p className="mt-3 text-sm leading-relaxed text-black/60">Amount and description are enough. AI suggests the details; you review them before saving.</p>
+              <label htmlFor={`${id}-text`} className="mb-2 block text-sm font-medium text-black/87">What did you spend or receive?</label>
+              <input ref={textRef} id={`${id}-text`} required value={text} onChange={event => setText(event.target.value)} placeholder="10 Chipotle" className={`min-h-12 w-full min-w-0 rounded-xl border border-black/50 bg-white px-3 py-3 text-base text-black/87 placeholder:text-black/50 ${TRANSACTION_FOCUS}`} />
+              <p className="mt-3 text-sm leading-relaxed text-black/60">Enter an amount and description. Review the suggestions before saving.</p>
             </div>}
           </fieldset>
         </form>

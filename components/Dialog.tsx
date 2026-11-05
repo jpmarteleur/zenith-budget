@@ -7,13 +7,14 @@ interface DialogProps {
   description: string;
   onClose: () => void;
   busy?: boolean;
+  compact?: boolean;
   children: React.ReactNode;
   footer: React.ReactNode;
   returnFocusRef?: React.RefObject<HTMLElement | null>;
 }
 
 const Dialog: React.FC<DialogProps> = ({
-  title, description, onClose, busy = false, children, footer, returnFocusRef,
+  title, description, onClose, busy = false, compact = false, children, footer, returnFocusRef,
 }) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -75,9 +76,9 @@ const Dialog: React.FC<DialogProps> = ({
     >
       <div className="flex max-h-[calc(100dvh-1rem-2px)] flex-col sm:max-h-[calc(100dvh-3rem)]">
         <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-black/20 sm:hidden" aria-hidden="true" />
-        <header className="flex shrink-0 items-start justify-between gap-3 px-5 pb-4 pt-4 sm:px-6 sm:pt-6">
+        <header className={`flex shrink-0 items-start justify-between gap-3 px-5 sm:px-6 ${compact ? 'py-3' : 'pb-4 pt-4 sm:pt-6'}`}>
           <div>
-            <h2 id={titleId} className="text-xl font-semibold tracking-tight text-house-green">{title}</h2>
+            <h2 id={titleId} className={`${compact ? 'text-lg' : 'text-xl'} font-semibold tracking-tight text-house-green`}>{title}</h2>
             <p id={descriptionId} className="mt-1 text-sm leading-relaxed text-black/60">{description}</p>
           </div>
           <button
@@ -90,8 +91,8 @@ const Dialog: React.FC<DialogProps> = ({
             <span aria-hidden="true"><XIcon className="h-5 w-5" /></span>
           </button>
         </header>
-        <div className="min-h-0 overflow-y-auto overscroll-contain border-t border-black/5 px-5 py-5 sm:px-6">{children}</div>
-        <footer className="shrink-0 border-t border-black/10 bg-white px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6">{footer}</footer>
+        <div className={`min-h-0 overflow-y-auto overscroll-contain border-t border-black/5 px-5 sm:px-6 ${compact ? 'py-3' : 'py-5'}`}>{children}</div>
+        <footer className={`shrink-0 border-t border-black/10 bg-white px-5 sm:px-6 ${compact ? 'pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]' : 'pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]'}`}>{footer}</footer>
       </div>
     </dialog>,
     document.body,

@@ -85,7 +85,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions, p
               {entries.map(transaction => {
                 const color = getCategoryColor(transaction.category).hex;
                 return <li key={transaction.id} className="grid grid-cols-[minmax(0,1fr)_minmax(0,7rem)] gap-x-3 gap-y-2 py-3 md:grid-cols-[minmax(0,1fr)_8rem_auto] md:items-center md:gap-4">
-                  <div className="order-1 min-w-0">
+                  <div className="order-1 row-span-2 min-w-0 md:row-span-1">
                     <p className="break-words text-sm font-semibold text-black/87">{transaction.subcategory}</p>
                     <div className="mt-1 flex items-center gap-1.5 text-xs text-black/60">
                       <span style={{ color }}>
@@ -94,16 +94,16 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions, p
                     {transaction.note && <p className="mt-2 break-words text-sm leading-relaxed text-black/60">{transaction.note}</p>}
                   </div>
                   <p className={`order-2 min-w-0 break-all text-right text-sm font-semibold tabular-nums ${transaction.category === 'Income' ? 'text-green-accent' : 'text-black/87'}`}>{formatCurrency(transaction.amount)}</p>
-                  <div className="order-4 col-span-2 flex justify-end gap-1 md:col-span-1">
-                    <button type="button" onClick={() => setEditing(transaction)} aria-label={`Edit ${transaction.subcategory} transaction`} title="Edit transaction" className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-medium text-black/60 hover:bg-black/5 ${TRANSACTION_FOCUS}`}>
+                  <div className="order-3 col-start-2 flex justify-end gap-1 md:col-start-auto">
+                    <button type="button" onClick={() => setEditing(transaction)} aria-label={`Edit ${transaction.subcategory} transaction`} title="Edit transaction" className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-medium text-black/60 hover:bg-black/5 ${TRANSACTION_FOCUS}`}>
                       <span aria-hidden="true">
                         <PencilIcon className="h-4 w-4" />
-                      </span>Edit
+                      </span><span className="sr-only sm:not-sr-only">Edit</span>
                     </button>
-                    <button type="button" onClick={() => { setDeleting(transaction); setError(null); setUncertain(false); }} aria-label={`Delete ${transaction.subcategory} transaction`} title="Delete transaction" className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-medium text-danger hover:bg-danger/5 ${TRANSACTION_FOCUS}`}>
+                    <button type="button" onClick={() => { setDeleting(transaction); setError(null); setUncertain(false); }} aria-label={`Delete ${transaction.subcategory} transaction`} title="Delete transaction" className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-medium text-danger hover:bg-danger/5 ${TRANSACTION_FOCUS}`}>
                       <span aria-hidden="true">
                         <TrashIcon className="h-4 w-4" />
-                      </span>Delete
+                      </span><span className="sr-only sm:not-sr-only">Delete</span>
                     </button>
                   </div>
                 </li>;

@@ -56,13 +56,14 @@ const BudgetCategorySection: React.FC<BudgetCategorySectionProps> = ({ category,
               <span className="text-sm font-semibold tabular-nums text-house-green sm:text-base">{view === 'plan' ? formatCurrency(expected) : `${formatCurrency(activity.amount)} ${activity.label}`}</span>
             </span>
             {view === 'track' ? <Activity category={category} name={category} expected={expected} actual={actual} /> : <span className="mt-1 block text-xs font-normal text-black/60 sm:text-sm">{category === 'Income' ? 'Your planned income sources' : 'Planned total'}</span>}
+            <span className="mt-2 block text-xs font-medium text-house-green">{expanded ? 'Hide details' : `Show details (${subcategories.length})`}</span>
           </span>
           <span aria-hidden="true" className="mt-2 shrink-0 text-black/60">
             <ChevronDownIcon className={`h-4 w-4 ${expanded ? 'rotate-180' : ''}`} />
           </span>
         </button>
       </h3>
-      <div id={id} hidden={!expanded} className="pb-4 pl-10 sm:pl-12">
+      <div id={id} hidden={!expanded} className="mb-3 ml-10 rounded-xl border-l-2 bg-black/5 px-3 py-1 sm:ml-12" style={{ borderColor: color }}>
         {subcategories.length === 0 && <p className="py-3 text-sm leading-relaxed text-black/60">{view === 'plan' ? 'Add a subcategory to start planning here.' : 'No subcategories yet. Add them in Plan.'}</p>}
         <ul className="divide-y divide-black/5">
           {subcategories.map(sub => {
