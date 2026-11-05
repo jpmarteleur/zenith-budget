@@ -18,6 +18,7 @@ export const CURRENCIES: Currency[] = [
 interface SettingsContextType {
   currency: Currency;
   setCurrency: (code: CurrencyCode) => void;
+  currencyError: string | null;
   formatCurrency: (amount: number) => string;
 }
 
@@ -26,16 +27,23 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currencyCode, setCurrencyCode] = useState<CurrencyCode>('USD');
 
+  const [currencyError, setCurrencyError] = useState<string | null>(null);
+
   useEffect(() => {
-    const savedCurrency = localStorage.getItem('zenith_currency');
-    if (savedCurrency && CURRENCIES.some(c => c.code === savedCurrency)) {
-      setCurrencyCode(savedCurrency as CurrencyCode);
-    }
+    try {
+      const savedCurrency = localStorage.getItem('zenith_currency');
+      if (savedCurrency && CURRENCIES.some(c => c.code === savedCurrency)) {
+        setCurrencyCode(savedCurrency as CurrencyCode);
+      }
+    } catch { setCurrencyError('Could not read your saved currency. USD is shown until you choose and save a currency.'); }
   }, []);
 
   const setCurrency = (code: CurrencyCode) => {
-    setCurrencyCode(code);
-    localStorage.setItem('zenith_currency', code);
+    try {
+      localStorage.setItem('zenith_currency', code);
+      setCurrencyCode(code);
+      setCurrencyError(null);
+    } catch { setCurrencyError('Could not save your currency on this device. Your previous currency is still selected. Check browser storage and try again.'); }
   };
 
   const currency = CURRENCIES.find(c => c.code === currencyCode) || CURRENCIES[0];
@@ -48,7 +56,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   return (
-    <SettingsContext.Provider value={{ currency, setCurrency, formatCurrency }}>
+    <SettingsContext.Provider value={{ currency, setCurrency, currencyError, formatCurrency }}>
       {children}
     </SettingsContext.Provider>
   );

@@ -1,6 +1,6 @@
 
 import type { CategoryName, Subcategories } from '../types';
-import { CATEGORY_NAMES } from '../types';
+import { decodeParsedTransaction } from '../utils/transactions';
 import { todayKey } from '../utils/dates';
 
 export const parseTransactionText = async (text: string, subcategories: Subcategories): Promise<{
@@ -29,21 +29,8 @@ export const parseTransactionText = async (text: string, subcategories: Subcateg
             throw new Error(serverMsg);
         }
 
-        const parsedData = await response.json();
-
-        if (
-            typeof parsedData.amount === 'number' &&
-            typeof parsedData.category === 'string' &&
-            typeof parsedData.subcategory === 'string' &&
-            typeof parsedData.note === 'string' &&
-            (CATEGORY_NAMES as readonly string[]).includes(parsedData.category)
-        ) {
-            return {
-                ...parsedData,
-                category: parsedData.category as CategoryName,
-            };
-        }
-        return null;
+        const parsedData: unknown = await response.json();
+        return decodeParsedTransaction(parsedData);
     } catch (error) {
         console.error("Error parsing transaction with Gemini:", error);
         return null;

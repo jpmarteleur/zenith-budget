@@ -9,9 +9,7 @@ export interface Transaction {
   subcategory: string;
   amount: number;
   note: string;
-  // Set when the transaction was generated from a recurring rule. Field names here
-  // must match the DB columns exactly — `updateTransaction` spreads the whole object
-  // straight into a PostgREST update, so a camelCase name would fail at runtime.
+  // Database provenance for a generated transaction. Editing preserves this link.
   recurring_id?: string | null;
 }
 
@@ -38,7 +36,7 @@ export type Budget = Record<CategoryName, BudgetItem>;
 export type Subcategories = Record<CategoryName, Subcategory[]>;
 
 // A transaction that repeats on the same day every month — subscriptions, rent, salary.
-// Offered as a checklist whenever a new month is created; never applied silently.
+// Reviewed in month setup or applied when due to an existing current month in the app.
 export interface RecurringRule {
   id: string;
   category: CategoryName;

@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { RecurringWriteResult } from '../utils/recurring';
 import type { User } from '@supabase/supabase-js';
 import type { RecurringApplyItem, RecurringRule, Subcategories, Transaction } from '../types';
 import { currentMonthKey, isDueOn, monthDayToDate, todayKey } from '../utils/dates';
@@ -14,7 +15,7 @@ interface UseRecurringAutoApplyArgs {
     isRecurringLoaded: boolean;
     isBudgetLoaded: boolean;
     allData: Record<string, MonthData>;
-    applyRecurringToMonth: (month: string, items: RecurringApplyItem[]) => Promise<void>;
+    applyRecurringToMonth: (month: string, items: RecurringApplyItem[]) => Promise<RecurringWriteResult>;
 }
 
 // How far through each month the drip has already run, as "userId:month" -> day of month.
@@ -26,34 +27,30 @@ interface UseRecurringAutoApplyArgs {
 const WATERMARK_KEY = 'zenith-recurring-watermark';
 
 const readWatermarks = (): Record<string, number> => {
-    try {
-        return JSON.parse(localStorage.getItem(WATERMARK_KEY) || '{}');
-    } catch (error) {
-        console.error('Error reading recurring watermark', error);
-        return {};
+    const value: unknown = JSON.parse(localStorage.getItem(WATERMARK_KEY) || '{}');
+    if (!value || typeof value !== 'object' || Array.isArray(value) || Object.values(value).some(day => !Number.isInteger(day) || day < 0 || day > 31)) {
+        throw new Error('Saved recurring application history could not be read.');
     }
+    return value as Record<string, number>;
 };
-
-const readWatermark = (userId: string, month: string): number =>
-    readWatermarks()[`${userId}:${month}`] || 0;
-
-const writeWatermark = (userId: string, month: string, day: number) => {
+const readWatermark = (userId: string, month: string): number => readWatermarks()[`${userId}:${month}`] || 0;
+const writeWatermark = (userId: string, month: string, day: number): boolean => {
     try {
         const all = readWatermarks();
         const key = `${userId}:${month}`;
-        if (all[key] === day) return;
-        all[key] = day;
-        localStorage.setItem(WATERMARK_KEY, JSON.stringify(all));
-    } catch (error) {
-        console.error('Error saving recurring watermark', error);
-    }
+        if (all[key] !== day) {
+            all[key] = day;
+            localStorage.setItem(WATERMARK_KEY, JSON.stringify(all));
+        }
+        return true;
+    } catch { return false; }
 };
 
 // Drips recurring rules into the current month as each one's day arrives, so a month
 // doesn't open with every subscription already "spent". Rent (day 1) shows on the 1st;
 // Netflix (day 28) turns up on the 28th. Nothing here is a new write path — it decides
 // what is due and hands it to the existing applyRecurringToMonth, which already covers
-// subcategory backfill, guest vs Supabase, optimistic state and rollback.
+// subcategory backfill and confirmed guest or Supabase persistence.
 //
 // Current month only, always. Months already in the user's history are finished budgets
 // and must never gain charges retroactively, however long the app has been closed.
@@ -68,11 +65,17 @@ export const useRecurringAutoApply = ({
     // applyRecurringToMonth commits to allData, which re-runs this effect while the insert
     // is still awaiting. Without this guard that second pass sees the pre-insert
     // transactions and files everything a second time.
-    const inFlight = useRef(false);
+    const inFlight = useRef<object | null>(null);
+    // A failed due set waits for reload or manual application instead of retrying on every render.
+    const attempted = useRef<string | null>(null);
+    const [failure, setFailure] = useState<{ user: string; error: string } | null>(null);
+    const session = useRef({ id: currentUser?.id });
+    if (session.current.id !== currentUser?.id) { session.current = { id: currentUser?.id }; attempted.current = null; }
+    const owner = session.current;
 
     useEffect(() => {
         if (!currentUser || !isRecurringLoaded || !isBudgetLoaded) return;
-        if (inFlight.current) return;
+        if (inFlight.current === owner) return;
 
         const month = currentMonthKey();
         const monthData = allData[month];
@@ -88,7 +91,16 @@ export const useRecurringAutoApply = ({
 
         const today = todayKey();
         const todayDay = Number(today.slice(8, 10));
-        const watermark = readWatermark(currentUser.id, month);
+        let watermark: number;
+        try { watermark = readWatermark(currentUser.id, month); }
+        catch {
+            setFailure({ user: currentUser.id, error: 'Could not read recurring application history on this device. Automatic application is paused. Check browser storage and reload.' });
+            return;
+        }
+        const saveWatermark = () => {
+            const saved = writeWatermark(currentUser.id, month, todayDay);
+            setFailure(saved ? null : { user: currentUser.id, error: 'Could not save recurring application history on this device. Check browser storage before deleting generated transactions, then reload.' });
+        };
 
         const due = activeRules.filter(rule => {
             if (appliedRuleIds.has(rule.id)) return false;
@@ -101,7 +113,7 @@ export const useRecurringAutoApply = ({
         if (due.length === 0) {
             // Nothing outstanding: record that this month is caught up through today, so a
             // transaction the user deletes later isn't mistaken for one never added.
-            writeWatermark(currentUser.id, month, todayDay);
+            saveWatermark();
             return;
         }
 
@@ -114,14 +126,24 @@ export const useRecurringAutoApply = ({
             day_of_month: rule.day_of_month,
         }));
 
-        inFlight.current = true;
+        const attempt = `${currentUser.id}:${month}:${today}:${due.map(rule => rule.id).join(',')}`;
+        if (attempted.current === attempt) return;
+        attempted.current = attempt;
+        inFlight.current = owner;
         // Self-limiting: once these land, their ids are in appliedRuleIds, so the re-run
         // this write triggers finds nothing due and stops.
         applyRecurringToMonth(month, items)
             // Advanced only on success, so a failed write is retried on the next open
             // rather than being silently skipped for good.
-            .then(() => writeWatermark(currentUser.id, month, todayDay))
-            .catch(error => console.error('Error auto-applying recurring transactions:', error))
-            .finally(() => { inFlight.current = false; });
-    }, [currentUser, activeRules, isRecurringLoaded, isBudgetLoaded, allData, applyRecurringToMonth]);
+            .then(result => {
+                if (session.current !== owner) return;
+                if (result.error) setFailure({ user: currentUser.id, error: result.error });
+                else {
+                    saveWatermark();
+                }
+            })
+            .catch(() => { if (session.current === owner) setFailure({ user: currentUser.id, error: 'Could not confirm recurring transactions. Reload and check history before trying again.' }); })
+            .finally(() => { if (inFlight.current === owner) inFlight.current = null; });
+    }, [currentUser, owner, activeRules, isRecurringLoaded, isBudgetLoaded, allData, applyRecurringToMonth]);
+    return failure?.user === currentUser?.id ? failure.error : null;
 };

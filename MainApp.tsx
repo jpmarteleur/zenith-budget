@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import NavBar from './components/NavBar';
 import BudgetPage from './pages/BudgetPage';
-import DashboardPage from './pages/DashboardPage';
-import HowToPage from './pages/HowToPage';
 import SettingsPage from './pages/SettingsPage';
 import { useBudget } from './hooks/useBudget';
 import { useRecurring } from './hooks/useRecurring';
@@ -10,10 +8,17 @@ import { useAuth } from './hooks/useAuth';
 import { useRecurringAutoApply } from './hooks/useRecurringAutoApply';
 import { currentMonthKey } from './utils/dates';
 
-export type Page = 'Budget' | 'Dashboard' | 'How To' | 'Settings';
+export type Page = 'Budget' | 'Settings';
 
 const MainApp: React.FC = () => {
   const [activePage, setActivePage] = useState<Page>('Budget');
+  const [openRecurringSettings, setOpenRecurringSettings] = useState(false);
+  const manageRecurring = () => { setOpenRecurringSettings(true); setActivePage('Settings'); };
+  const navigate = (page: Page) => { setOpenRecurringSettings(false); setActivePage(page); };
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.getElementById('main-content')?.focus({ preventScroll: true });
+  }, [activePage]);
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthKey());
   const { currentUser } = useAuth();
   const budgetData = useBudget(selectedMonth, currentUser);
@@ -23,11 +28,11 @@ const MainApp: React.FC = () => {
 
   // Materialises recurring rules into the *current* month as each one's day arrives.
   // Deliberately not tied to selectedMonth: browsing an old month must never write to it.
-  useRecurringAutoApply({
+  const recurringApplyError = useRecurringAutoApply({
     currentUser,
     activeRules: recurringData.activeRules,
-    isRecurringLoaded: recurringData.isRecurringLoaded,
-    isBudgetLoaded: budgetData.isLoaded,
+    isRecurringLoaded: recurringData.isRecurringLoaded && !recurringData.recurringLoadError,
+    isBudgetLoaded: budgetData.isLoaded && !budgetData.loadError,
     allData: budgetData.allData,
     applyRecurringToMonth: budgetData.applyRecurringToMonth,
   });
@@ -50,45 +55,39 @@ const MainApp: React.FC = () => {
   const renderPage = () => {
     switch (activePage) {
       case 'Budget':
-        return <BudgetPage {...budgetData} selectedMonth={selectedMonth} activeRecurringRules={recurringData.activeRules} />;
-      case 'Dashboard':
-        return <DashboardPage {...budgetData} selectedMonth={selectedMonth} />;
-      case 'How To':
-        return <HowToPage />;
+        return <BudgetPage key={selectedMonth} {...budgetData} selectedMonth={selectedMonth} activeRecurringRules={recurringData.activeRules} recurringReady={recurringData.isRecurringLoaded && !recurringData.recurringLoadError} onManageRecurring={manageRecurring} />;
       case 'Settings':
-        return <SettingsPage {...recurringData} subcategories={budgetData.subcategories} />;
+        return <SettingsPage {...recurringData} subcategories={budgetData.subcategories} openRecurring={openRecurringSettings} />;
       default:
-        return <BudgetPage {...budgetData} selectedMonth={selectedMonth} activeRecurringRules={recurringData.activeRules} />;
+        return <BudgetPage key={selectedMonth} {...budgetData} selectedMonth={selectedMonth} activeRecurringRules={recurringData.activeRules} recurringReady={recurringData.isRecurringLoaded && !recurringData.recurringLoadError} onManageRecurring={manageRecurring} />;
     }
   };
 
   return (
     <div className="min-h-screen">
-      {/* House Green header band — the espresso-dark bookend */}
-      <header className="bg-house-green">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
-          <h1 className="font-serif text-4xl sm:text-5xl font-semibold text-white">Zenith Budget</h1>
-          <p className="text-white/70 mt-2 text-sm tracking-wide">Manage Your Assets</p>
-        </div>
-      </header>
-      <div className="flex flex-col items-center p-4 sm:p-6 lg:p-8">
-        <div className="w-full max-w-7xl mx-auto">
-          <NavBar
-            activePage={activePage}
-            setActivePage={setActivePage}
-            selectedMonth={selectedMonth}
-            setSelectedMonth={setSelectedMonth}
-            availableMonths={budgetData.availableMonths}
-            createNewMonth={budgetData.createNewMonth}
-            deleteMonth={budgetData.deleteMonth}
-            activeRecurringRules={recurringData.activeRules}
-            subcategoriesByMonth={subcategoriesByMonth}
-          />
-          <main className="mt-6">
-            {renderPage()}
-          </main>
-        </div>
-      </div>
+      <NavBar
+        activePage={activePage}
+        setActivePage={navigate}
+        selectedMonth={selectedMonth}
+        setSelectedMonth={setSelectedMonth}
+        availableMonths={budgetData.availableMonths}
+        createNewMonth={budgetData.createNewMonth}
+        deleteMonth={budgetData.deleteMonth}
+        activeRecurringRules={recurringData.activeRules}
+        subcategoriesByMonth={subcategoriesByMonth}
+        isBudgetLoaded={budgetData.isLoaded && !budgetData.loadError}
+      />
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl px-3 pb-8 pt-4 focus:outline-none sm:px-6 lg:px-8">
+        {activePage !== 'Settings' && recurringData.recurringLoadError && <div role="alert" className="mx-auto mb-6 max-w-4xl rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm leading-relaxed text-danger">
+          <p>Recurring rules could not be loaded. Automatic application and recurring suggestions are unavailable.</p>
+          <button type="button" onClick={() => setActivePage('Settings')} className="mt-2 min-h-11 rounded-lg font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-house-green">Open Settings to retry</button>
+        </div>}
+        {recurringApplyError && <div role="alert" className="mx-auto mb-6 max-w-4xl rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm leading-relaxed text-danger">
+          <p>Automatic recurring application needs attention. {recurringApplyError}</p>
+          <button type="button" onClick={() => window.location.reload()} className="mt-2 min-h-11 rounded-lg font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-house-green">Reload activity</button>
+        </div>}
+        {renderPage()}
+      </main>
     </div>
   );
 };

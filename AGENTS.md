@@ -88,6 +88,11 @@ Check `package.json`, `package-lock.json`, and configuration before relying on
 an API. Use npm and preserve the lockfile. Do not replace the stack or add new
 packages without the applicable scope approval.
 
+For local setup, you can run `npm ci`. Start development with `npm run dev`
+(port 3000), or serve the built app with `npm run preview`. Preview serves the
+frontend build; the parsing middleware in `vite.config.ts` runs only during
+development. Production parsing needs a host that runs `api/parse-transaction.ts`.
+
 Follow existing ownership boundaries; this is not a request to reorganize:
 
 ```text

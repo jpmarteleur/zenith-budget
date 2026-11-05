@@ -1,74 +1,66 @@
 import React from 'react';
-import { CARD_STYLE } from '../constants';
 
-const HowToPage: React.FC = () => {
-  return (
-    <div className="space-y-6 text-black/70">
-      <div className={`${CARD_STYLE} p-6 md:p-8`}>
-        <h2 className="text-2xl font-bold text-black/87 mb-4">Welcome to Zenith Budget!</h2>
-        <p>This guide will help you understand the principles behind the app and how to get started on your journey to financial clarity.</p>
-      </div>
-      
-      <div className={`${CARD_STYLE} p-6 md:p-8`}>
-        <h3 className="text-xl font-bold text-sb-green mb-3">The Zero-Based Budgeting Method</h3>
-        <p className="mb-4">
-          Zenith Budget is built on the <strong className="text-black/87">zero-based budgeting</strong> method. The concept is simple: <strong className="text-black/87">give every dollar a job</strong>.
-        </p>
-        <p className="mb-4">
-          At the beginning of each month, you plan where all of your income will go; from bills and expenses to debt payments and savings goals. Your income minus all your planned spending should equal zero.
-        </p>
-        <div className="bg-green-mint rounded-xl p-4">
-            <h4 className="font-semibold text-black/87">The Main Goal: Remaining to Budget = $0</h4>
-            <p className="text-sm text-black/60 mt-1">This is the most important indicator. When it's zero, it means you've created a complete plan for your income. It doesn't mean you have no money left; it means every single dollar has been intentionally allocated.</p>
+const steps = [
+  { title: 'Set up your month', text: 'Open the month dropdown on Budget and choose Create new month at the top. Copy a previous plan, keep its subcategories with planned amounts reset to zero, or start from scratch. Copying brings over the plan, never its transaction history, and cannot overwrite an existing month.' },
+  { title: 'Give your income a job', text: 'Expand a category on Budget. Add income sources and subcategories, then use Edit beside an existing subcategory to change its planned amount. Income, Expenses, Bills, Savings, Investments, and Debts each have their own place. Aim for zero left to allocate.' },
+  { title: 'Record everyday activity', text: 'Use Add transaction, then Quick entry for AI suggestions or Manual to enter the details yourself. Review the category, subcategory, amount, date, and note before saving. Transaction dates stay within the selected budget month.' },
+  { title: 'Track and adjust', text: 'Compare recorded activity with your plan on Budget. Expand categories for the details and use Edit to adjust allocations. Transaction history sits below the categories, where you can edit or delete entries.' },
+];
+
+const HowToPage: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => (
+  <div className="mx-auto max-w-4xl space-y-6 text-sm leading-relaxed text-black/70">
+    <header>
+      {embedded ? <h2 className="text-xl font-semibold tracking-tight text-house-green">How to set up your budget</h2> : <h1 className="text-2xl font-semibold tracking-tight text-house-green">How to set up your budget</h1>}
+      <p className="mt-2 text-black/60">A plan for the month. A clearer view of the everyday.</p>
+    </header>
+
+    <section aria-labelledby="method-title" className="rounded-2xl border border-black/10 bg-white p-5 sm:p-6">
+      <h2 id="method-title" className="text-lg font-semibold tracking-tight text-house-green">Give every dollar a purpose</h2>
+      <p className="mt-2">Zero-based budgeting means: plan how your income will cover expenses, bills, savings, investments, and debt payments. A fully allocated plan means every dollar has a job, not that your bank account is empty.</p>
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl bg-green-mint/40 p-4">
+          <h3 className="font-semibold text-house-green">Left to allocate</h3>
+          <p className="mt-1">Planned income minus planned allocations. Aim for zero, then adjust as needed.</p>
+        </div>
+        <div className="rounded-xl bg-cream p-4">
+          <h3 className="font-semibold text-house-green">Recorded cash flow</h3>
+          <p className="mt-1">Recorded income minus recorded outflows. This reflects your entries, not your bank balance.</p>
         </div>
       </div>
+    </section>
 
-      <div className={`${CARD_STYLE} p-6 md:p-8`}>
-        <h3 className="text-xl font-bold text-sb-green mb-4">Getting Started: A Step-by-Step Guide</h3>
-        <ol className="list-decimal list-inside space-y-6">
-          <li>
-            <strong className="text-black/87">Set Up Your Month:</strong>
-            <p className="text-sm text-black/60 ml-6 mt-1">Use the dropdown menu at the top right to create a budget for a new month. You can start from scratch, copy your categories from the previous month with zeroed-out values, or copy the entire budget to save time.</p>
-          </li>
-          <li>
-            <strong className="text-black/87">Plan Your Budget (The 'Expected' Amount):</strong>
-            <p className="text-sm text-black/60 ml-6 mt-1">For each category (Income, Expenses, Bills, etc.), add subcategories and fill in the <strong className="text-black/70">'Expected'</strong> amount. This is your plan. How much do you expect to earn? How much do you plan to spend on groceries? Your goal is to keep adjusting these 'Expected' amounts until your "Remaining to Budget" at the top of the screen is $0.</p>
-          </li>
-          <li>
-            <strong className="text-black/87">Log Transactions (The 'Actual' Amount):</strong>
-            <p className="text-sm text-black/60 ml-6 mt-1">As you go through the month, log every transaction. When you get paid, log it under 'Income'. When you buy something, log it in the appropriate expense category. The app will automatically sum these up as your <strong className="text-black/70">'Actual'</strong> spending.</p>
-          </li>
-          <li>
-            <strong className="text-black/87">Track and Adjust:</strong>
-            <p className="text-sm text-black/60 ml-6 mt-1">Use the 'Budget' page to see how your actual spending compares to your expected plan. The progress bars will show you how much of your budget you've used. If you overspend in one area, you'll need to adjust your budget and move money from another category to stay on track. The 'Dashboard' page gives you a high-level visual overview of your financial health.</p>
-          </li>
-          <li>
-            <strong className="text-black/87">Hide Subcategories from Budget (Optional):</strong>
-            <p className="text-sm text-black/60 ml-6 mt-1">Click the eye icon next to any subcategory to hide it from budget calculations. This is useful for tracking transactions that don't come from your regular income, such as:</p>
-            <ul className="text-sm text-black/60 ml-12 mt-3 list-disc space-y-2">
-              <li><strong className="text-black/70">Savings-funded expenses:</strong> Large purchases paid from savings (car repairs, home improvements)</li>
-              <li><strong className="text-black/70">Reimbursable expenses:</strong> Work expenses you'll be reimbursed for</li>
-              <li><strong className="text-black/70">Gift money or windfalls:</strong> Income that's separate from your regular budget planning</li>
-            </ul>
-            <p className="text-sm text-black/60 ml-6 mt-2">Hidden subcategories (shown with the eye-off icon) won't affect your "Remaining to Spend" but will still be tracked in your transaction history for record-keeping.</p>
-          </li>
-        </ol>
+    <section aria-labelledby="steps-title" className="rounded-2xl border border-black/10 bg-white p-5 sm:p-6">
+      <h2 id="steps-title" className="text-lg font-semibold tracking-tight text-house-green">Your first month, step by step</h2>
+      <ol className="mt-5 divide-y divide-black/10">
+        {steps.map((step, index) => <li key={step.title} className="flex gap-4 py-5 first:pt-0 last:pb-0">
+          <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-mint/50 text-sm font-semibold text-house-green">{index + 1}</span>
+          <div className="min-w-0"><h3 className="font-semibold text-black/87">{step.title}</h3><p className="mt-1">{step.text}</p></div>
+        </li>)}
+      </ol>
+    </section>
+
+    <section aria-labelledby="details-title" className="rounded-2xl border border-black/10 bg-white p-5 sm:p-6">
+      <h2 id="details-title" className="text-lg font-semibold tracking-tight text-house-green">A few useful details</h2>
+      <div className="mt-5 space-y-5 divide-y divide-black/10">
+        <div>
+          <h3 className="font-semibold text-black/87">Keep some activity outside your totals</h3>
+          <p className="mt-1">Expand a category, edit a subcategory and clear Include in budget totals. Its planned and recorded amounts are excluded from category totals and cash flow, while its activity remains visible in the subcategory and transaction history. This can help with reimbursable or savings-funded purchases.</p>
+        </div>
+        <div className="pt-5">
+          <h3 className="font-semibold text-black/87">Set up regular transactions</h3>
+          <p className="mt-1">Add monthly recurring rules in Settings. Review due rules and adjust amounts when creating a month or applying them from Budget. Due rules also apply automatically to an existing current-month budget while you use the app. This is not a background scheduler. Pausing, editing, or deleting a rule keeps its historical transactions.</p>
+        </div>
+        <div className="pt-5">
+          <h3 className="font-semibold text-black/87">Choose how amounts are displayed</h3>
+          <p className="mt-1">Settings offers USD, EUR, and GBP formatting. Changing currency changes the display, without converting stored amounts at an exchange rate.</p>
+        </div>
+        <div className="pt-5">
+          <h3 className="font-semibold text-black/87">Try things out as a guest</h3>
+          <p className="mt-1">Guest budgets and recurring rules are stored only in this browser. They stay separate from signed-in accounts and are not transferred when you sign in. Signing out of guest mode clears them.</p>
+        </div>
       </div>
-
-       <div className={`${CARD_STYLE} p-6 md:p-8`}>
-        <h3 className="text-xl font-bold text-sb-green mb-3">Key Indicators Explained</h3>
-        <ul className="space-y-4">
-            <li>
-                <strong className="text-black/87">Remaining to Budget:</strong> This shows `Total Expected Income - Total Expected Spending`. It's your planning metric. Aim for $0.
-            </li>
-            <li>
-                <strong className="text-black/87">Remaining to Spend:</strong> This shows `Total Actual Income - Total Actual Spending`. This is your real-time cash flow for the month.
-            </li>
-        </ul>
-      </div>
-
-    </div>
-  );
-};
+    </section>
+  </div>
+);
 
 export default HowToPage;
